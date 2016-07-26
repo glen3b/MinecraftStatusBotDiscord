@@ -34,13 +34,23 @@ namespace DiscordBotCheckMinecraftStatus
 
 				// TODO check: If done right, returns null UNLESS a textchannel by the name of general can be found in the specified serve
 				DefaultChannel = ServerID.HasValue ? Client.GetServer (ServerID.Value)?.FindChannels ("general", ChannelType.Text)?.FirstOrDefault () : null;
+				if (DefaultChannel == null) {
+					// If there's no general channel, go for a Minecraft channel
+					DefaultChannel = ServerID.HasValue ? Client.GetServer (ServerID.Value)?.FindChannels ("minecraft", ChannelType.Text, exactMatch: true)?.FirstOrDefault () : null;
+				}
+
+				if (DefaultChannel == null) {
+					Console.WriteLine ("Using channel #{0} as the main channel.", DefaultChannel.Name);
+				} else {
+					Console.WriteLine ("No default channel found. This will prevent status updates until a user runs a command in a public channel.");
+				}
 
 			};
 //			Client.MessageReceived += (object sender, MessageEventArgs e) => {
 //				Console.WriteLine ("Received message in channel {0} from {1}: {2}", e.Channel.Name, e.User.Name, e.Message.Text);
 //			};
 
-			StatusCheckTimer = new System.Threading.Timer (OnStatusTimer, null, TimeSpan.FromMinutes (1), TimeSpan.FromTicks(Delay.Ticks * 2));
+			StatusCheckTimer = new System.Threading.Timer (OnStatusTimer, null, TimeSpan.FromMinutes (1), TimeSpan.FromTicks (Delay.Ticks * 2));
 
 			ulong adminIDNum = UInt64.Parse (adminId);
 
@@ -74,11 +84,11 @@ namespace DiscordBotCheckMinecraftStatus
 					.Alias ("subscribe", "notify")
 					.Description ("Notifies the invoker upon the next status check where the Minecraft server is online.")
 					.Do (async (arg) => {
-						// TODO a bit of a hack
-						// Set the default channel, if not already set, to the first non-private channel a status command is received from
-						if (arg.Server != null) {
-							DefaultChannel = arg.Channel;
-						}
+					// TODO a bit of a hack
+					// Set the default channel, if not already set, to the first non-private channel a status command is received from
+					if (arg.Server != null) {
+						DefaultChannel = arg.Channel;
+					}
 
 					if (lastPingSuccess) {
 						await arg.User.SendMessage ("The server was up when last checked; you cannot currently subscribe to downtime.");

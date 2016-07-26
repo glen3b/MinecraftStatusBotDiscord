@@ -39,7 +39,7 @@ namespace DiscordBotCheckMinecraftStatus
 					DefaultChannel = ServerID.HasValue ? Client.GetServer (ServerID.Value)?.FindChannels ("minecraft", ChannelType.Text, exactMatch: true)?.FirstOrDefault () : null;
 				}
 
-				if (DefaultChannel == null) {
+				if (DefaultChannel != null) {
 					Console.WriteLine ("Using channel #{0} as the main channel.", DefaultChannel.Name);
 				} else {
 					Console.WriteLine ("No default channel found. This will prevent status updates until a user runs a command in a public channel.");
@@ -86,9 +86,7 @@ namespace DiscordBotCheckMinecraftStatus
 					.Do (async (arg) => {
 					// TODO a bit of a hack
 					// Set the default channel, if not already set, to the first non-private channel a status command is received from
-					if (arg.Server != null) {
-						DefaultChannel = arg.Channel;
-					}
+					SetDefaultIfNeeded (arg);
 
 					if (lastPingSuccess) {
 						await arg.User.SendMessage ("The server was up when last checked; you cannot currently subscribe to downtime.");
@@ -116,28 +114,28 @@ namespace DiscordBotCheckMinecraftStatus
 				});
 
 				cgb.CreateGroup ("defaultchannel", (ccgb) => {
-					ccgb.PublicOnly().UseGlobalWhitelist().CreateCommand("set")
-						.Description("Sets the default channel for alerts to your current channel.")
-						.Do(async (arg) => {
-							if(arg.Server == null){
-								await arg.User.SendMessage("The default channel must be public.");
-								return;
-							}
-							DefaultChannel = arg.Channel;
-							await arg.User.SendMessage(string.Format("Default channel for alerts set to #{0}.", arg.Channel.Name));
-						});
+					ccgb.PublicOnly ().UseGlobalWhitelist ().CreateCommand ("set")
+						.Description ("Sets the default channel for alerts to your current channel.")
+						.Do (async (arg) => {
+						if (arg.Server == null) {
+							await arg.User.SendMessage ("The default channel must be public.");
+							return;
+						}
+						DefaultChannel = arg.Channel;
+						await arg.User.SendMessage (string.Format ("Default channel for alerts set to #{0}.", arg.Channel.Name));
+					});
 
-					ccgb.PrivateOnly().UseGlobalWhitelist().CreateCommand("get")
-						.Description("Gets the default channel.")
-						.Do(async (arg) => {
+					ccgb.PrivateOnly ().UseGlobalWhitelist ().CreateCommand ("get")
+						.Description ("Gets the default channel.")
+						.Do (async (arg) => {
 
-							if(DefaultChannel == null){
-								await arg.Channel.SendMessage("There is currently no default channel set.");
-								return;
-							}
+						if (DefaultChannel == null) {
+							await arg.Channel.SendMessage ("There is currently no default channel set.");
+							return;
+						}
 
-							await arg.Channel.SendMessage(string.Format("The default channel is #{0}.", DefaultChannel.Name, DefaultChannel.Server.Name));
-						});
+						await arg.Channel.SendMessage (string.Format ("The default channel is #{0}.", DefaultChannel.Name, DefaultChannel.Server.Name));
+					});
 				});
 
 				cgb.CreateGroup ("cooldown", ccgb => {
@@ -239,6 +237,16 @@ namespace DiscordBotCheckMinecraftStatus
 			}
 		}
 
+		private void SetDefaultIfNeeded (CommandEventArgs arg)
+		{
+			// TODO a bit of a hack
+			// Set the default channel, if not already set, to the first non-private channel a status command is received from
+			if (DefaultChannel == null && arg.Server != null) {
+				DefaultChannel = arg.Channel;
+				Console.WriteLine ("Default channel set to #{0}.", DefaultChannel.Name);
+			}
+		}
+
 		public string MinecraftAddress;
 		public short MinecraftPort = 25565;
 		public TimeSpan Delay = TimeSpan.FromSeconds (30);
@@ -252,6 +260,19 @@ namespace DiscordBotCheckMinecraftStatus
 		private List<User> NotifyOnUptime = new List<User> ();
 		private bool lastPingSuccess = true;
 		private System.Threading.Timer StatusCheckTimer;
+
+		private MineLib.Network.Modern.BaseClients.ServerInfo ErrorServerInfo
+		{
+			get{
+				return new MineLib.Network.Modern.BaseClients.ServerInfo () {
+					Description = null,
+					Players = new MineLib.Network.Modern.BaseClients.Players () {
+						Max = -1,
+						Online = -1
+					}
+				};
+			}
+		}
 
 		private void OnStatusTimer (object userState)
 		{
@@ -269,6 +290,19 @@ namespace DiscordBotCheckMinecraftStatus
 
 			// Do a quiet status check to potentially alert if there is new success
 			CheckServerStatus (DefaultChannel, null);
+		}
+
+		protected async Task<TResult> TaskWithTimeout<TResult>(Task<TResult> longRunning, TResult defaultValue, int timeout = 3000)
+		{
+			
+			if (await Task.WhenAny(longRunning, Task.Delay(timeout)) == longRunning) {
+				// task completed within timeout
+				return await longRunning;
+			} else { 
+				// timeout logic
+				// TODO cancel properly
+				return defaultValue;
+			}
 		}
 
 		// TODO alertOnFail param == null means no alert on fail, set to value means alert that user OR if applicable alert the channel the CMD was received in
@@ -289,8 +323,12 @@ namespace DiscordBotCheckMinecraftStatus
 
 			LastPing = DateTime.Now;
 
-			var servInfo = await GetServerInfo ();
 			long ping = await PingAddress (MinecraftAddress);
+			MineLib.Network.Modern.BaseClients.ServerInfo servInfo = ErrorServerInfo;
+			if (ping >= 0) {
+				servInfo = await TaskWithTimeout(GetServerInfo(), ErrorServerInfo);
+			}
+
 
 			if (ping == -1 || servInfo.Equals (default(MineLib.Network.Modern.BaseClients.ServerInfo)) || servInfo.Players.Online < 0) {
 				lastPingSuccess = false;
@@ -334,9 +372,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 			// TODO a bit of a hack
 			// Set the default channel, if not already set, to the first non-private channel a status command is received from
-			if (args.Server != null) {
-				DefaultChannel = args.Channel;
-			}
+			SetDefaultIfNeeded(args);
 
 			CheckServerStatus (args.Channel, args.User);
 		}
@@ -376,13 +412,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 						return serverInfo;
 					} catch {
-						return new MineLib.Network.Modern.BaseClients.ServerInfo () {
-							Description = null,
-							Players = new MineLib.Network.Modern.BaseClients.Players () {
-								Max = -1,
-								Online = -1
-							}
-						};
+						return ErrorServerInfo;
 					}
 				}
 			);

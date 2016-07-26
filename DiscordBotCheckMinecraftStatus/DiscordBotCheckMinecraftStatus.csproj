@@ -79,29 +79,4 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <Target Name="AfterBuild" Condition="'$(Configuration)' == 'Release'">
-    <ItemGroup>
-
-
-      <InputAssemblies Include="$(OutputPath)\$(AssemblyName).exe" />
-
-      <InputAssemblies Include="$(OutputPath)\Newtonsoft.Json.dll" />
-      <InputAssemblies Include="$(OutputPath)\MineLib.Network.dll" />
-      <InputAssemblies Include="$(OutputPath)\RestSharp.dll" />
-      <InputAssemblies Include="$(OutputPath)\ICSharpCode.SharpZipLib.dll" />
-      <InputAssemblies Include="$(OutputPath)\BouncyCastle.Crypto.dll" />
-      <InputAssemblies Include="$(OutputPath)\Discord.Net.dll" />
-      <InputAssemblies Include="$(OutputPath)\Discord.Net.Commands.dll" />
-      <InputAssemblies Include="$(OutputPath)\Nito.AsyncEx.dll" />
-      <InputAssemblies Include="$(OutputPath)\Nito.AsyncEx.Concurrent.dll" />
-      <InputAssemblies Include="$(OutputPath)\WebSocket4Net.dll" />
-
-      <!-- <InputAssemblies Include="$(OutputPath)\*.dll" /> -->
-    </ItemGroup>
-    <ItemGroup>
-      <!-- Must be a fully qualified name -->
-      <DoNotInternalizeAssemblies Include="ILRepack.MSBuild.Task" />
-    </ItemGroup>
-    <ILRepack Parallel="true" Internalize="true" InternalizeExclude="@(DoNotInternalizeAssemblies)" InputAssemblies="@(InputAssemblies)" TargetKind="Exe" OutputFile="$(OutputPath)\$(AssemblyName).standalone.exe" />
-  </Target>
 </Project>

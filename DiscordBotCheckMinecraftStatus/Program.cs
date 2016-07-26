@@ -105,6 +105,16 @@ namespace DiscordBotCheckMinecraftStatus
 					await arg.Channel.SendMessage ("Hello world!");
 				});
 
+				cgb.PrivateOnly ().UseGlobalWhitelist ().CreateCommand ("shutdown")
+					.Alias ("die")
+					.Description ("Kills the bot.")
+					.Do (async (arg) => {
+						await arg.Channel.SendMessage("Shutting down :(");
+						Console.WriteLine("Received shutdown command from {0}.", arg.User.Name);
+						await Client.Disconnect();
+						Client.Dispose();
+				});
+
 				cgb.PrivateOnly ().UseGlobalWhitelist ().CreateCommand ("disable")
 					.Alias ("lock")
 					.Description ("Disables the bots ping functionality.")
@@ -261,9 +271,8 @@ namespace DiscordBotCheckMinecraftStatus
 		private bool lastPingSuccess = true;
 		private System.Threading.Timer StatusCheckTimer;
 
-		private MineLib.Network.Modern.BaseClients.ServerInfo ErrorServerInfo
-		{
-			get{
+		private MineLib.Network.Modern.BaseClients.ServerInfo ErrorServerInfo {
+			get {
 				return new MineLib.Network.Modern.BaseClients.ServerInfo () {
 					Description = null,
 					Players = new MineLib.Network.Modern.BaseClients.Players () {
@@ -292,10 +301,10 @@ namespace DiscordBotCheckMinecraftStatus
 			CheckServerStatus (DefaultChannel, null);
 		}
 
-		protected async Task<TResult> TaskWithTimeout<TResult>(Task<TResult> longRunning, TResult defaultValue, int timeout = 3000)
+		protected async Task<TResult> TaskWithTimeout<TResult> (Task<TResult> longRunning, TResult defaultValue, int timeout = 1250)
 		{
 			
-			if (await Task.WhenAny(longRunning, Task.Delay(timeout)) == longRunning) {
+			if (await Task.WhenAny (longRunning, Task.Delay (timeout)) == longRunning) {
 				// task completed within timeout
 				return await longRunning;
 			} else { 
@@ -326,7 +335,7 @@ namespace DiscordBotCheckMinecraftStatus
 			long ping = await PingAddress (MinecraftAddress);
 			MineLib.Network.Modern.BaseClients.ServerInfo servInfo = ErrorServerInfo;
 			if (ping >= 0) {
-				servInfo = await TaskWithTimeout(GetServerInfo(), ErrorServerInfo);
+				servInfo = await TaskWithTimeout (GetServerInfo (), ErrorServerInfo);
 			}
 
 
@@ -372,7 +381,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 			// TODO a bit of a hack
 			// Set the default channel, if not already set, to the first non-private channel a status command is received from
-			SetDefaultIfNeeded(args);
+			SetDefaultIfNeeded (args);
 
 			CheckServerStatus (args.Channel, args.User);
 		}

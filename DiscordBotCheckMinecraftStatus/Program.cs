@@ -115,6 +115,31 @@ namespace DiscordBotCheckMinecraftStatus
 					await arg.Channel.SendMessage ("Server pings disabled.");
 				});
 
+				cgb.CreateGroup ("defaultchannel", (ccgb) => {
+					ccgb.PublicOnly().UseGlobalWhitelist().CreateCommand("set")
+						.Description("Sets the default channel for alerts to your current channel.")
+						.Do(async (arg) => {
+							if(arg.Server == null){
+								await arg.User.SendMessage("The default channel must be public.");
+								return;
+							}
+							DefaultChannel = arg.Channel;
+							await arg.User.SendMessage(string.Format("Default channel for alerts set to #{0}.", arg.Channel.Name));
+						});
+
+					ccgb.PrivateOnly().UseGlobalWhitelist().CreateCommand("get")
+						.Description("Gets the default channel.")
+						.Do(async (arg) => {
+
+							if(DefaultChannel == null){
+								await arg.Channel.SendMessage("There is currently no default channel set.");
+								return;
+							}
+
+							await arg.Channel.SendMessage(string.Format("The default channel is #{0}.", DefaultChannel.Name, DefaultChannel.Server.Name));
+						});
+				});
+
 				cgb.CreateGroup ("cooldown", ccgb => {
 					ccgb.UseGlobalWhitelist ().CreateCommand ("status")
 						.Alias ("check")

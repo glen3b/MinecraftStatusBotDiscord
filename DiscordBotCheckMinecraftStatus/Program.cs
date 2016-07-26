@@ -300,7 +300,11 @@ namespace DiscordBotCheckMinecraftStatus
 			}
 
 			// Do a quiet status check to potentially alert if there is new success
-			CheckServerStatus (DefaultChannel, null);
+			try {
+				CheckServerStatus (DefaultChannel, null);
+			} catch {
+				// Ignore
+			}
 		}
 
 		protected async Task<TResult> TaskWithTimeout<TResult> (Task<TResult> longRunning, TResult defaultValue, int timeout = 1250)
@@ -339,10 +343,18 @@ namespace DiscordBotCheckMinecraftStatus
 
 			LastPing = DateTime.Now;
 
-			long ping = await PingAddress (MinecraftAddress);
+			long ping = -1;
 			MineLib.Network.Modern.BaseClients.ServerInfo servInfo = ErrorServerInfo;
-			if (ping >= 0) {
-				servInfo = await TaskWithTimeout (GetServerInfo (), ErrorServerInfo);
+
+			try {
+				ping = await PingAddress (MinecraftAddress);
+				if (ping >= 0) {
+					servInfo = await TaskWithTimeout (GetServerInfo (), ErrorServerInfo);
+				}
+			} catch {
+				// Blanket catch all
+				ping = -1;
+				servInfo = ErrorServerInfo;
 			}
 
 

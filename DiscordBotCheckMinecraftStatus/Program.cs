@@ -307,7 +307,7 @@ namespace DiscordBotCheckMinecraftStatus
 			}
 		}
 
-		protected async Task<TResult> TaskWithTimeout<TResult> (Task<TResult> longRunning, TResult defaultValue, int timeout = 1250)
+		protected async Task<TResult> TaskWithTimeout<TResult> (Task<TResult> longRunning, TResult defaultValue, int timeout = 5000)
 		{
 			
 			if (await Task.WhenAny (longRunning, Task.Delay (timeout)) == longRunning) {
@@ -434,11 +434,20 @@ namespace DiscordBotCheckMinecraftStatus
 						client.Mode = NetworkMode.Modern;
 
 						// TODO hardcoded protocol version
-						var serverInfo = client.GetServerInfo (MinecraftAddress, MinecraftPort, 5);
+						MineLib.Network.Modern.BaseClients.ServerInfo info;
+						Task<MineLib.Network.Modern.BaseClients.ServerInfo> getTask = Task.Run (() => client.GetServerInfo (MinecraftAddress, MinecraftPort, 5));
+						if (getTask.Wait (3000) && !getTask.IsFaulted && !getTask.IsCanceled && getTask.Exception == null && getTask.IsCompleted) {
+							info = getTask.Result;
+						} else {
+							info = ErrorServerInfo;
+						}
 
-						client.Dispose ();
+						try {
+							client.Dispose ();
+						} catch {
+						}
+						return info;
 
-						return serverInfo;
 					} catch {
 						return ErrorServerInfo;
 					}

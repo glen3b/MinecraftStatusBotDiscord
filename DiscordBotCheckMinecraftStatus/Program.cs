@@ -90,6 +90,8 @@ namespace DiscordBotCheckMinecraftStatus
 
 					if (lastPingSuccess) {
 						await arg.User.SendMessage ("The server was up when last checked; you cannot currently subscribe to downtime.");
+					} else if (NotifyOnUptime.Contains (arg.User)) {
+						await arg.User.SendMessage ("You are already subscribed to the next uptime notification.");
 					} else {
 						NotifyOnUptime.Add (arg.User);
 						await arg.User.SendMessage ("You will be notified when the server comes back online.");
@@ -109,10 +111,10 @@ namespace DiscordBotCheckMinecraftStatus
 					.Alias ("die")
 					.Description ("Kills the bot.")
 					.Do (async (arg) => {
-						await arg.Channel.SendMessage("Shutting down :(");
-						Console.WriteLine("Received shutdown command from {0}.", arg.User.Name);
-						await Client.Disconnect();
-						Client.Dispose();
+					await arg.Channel.SendMessage ("Shutting down :(");
+					Console.WriteLine ("Received shutdown command from {0}.", arg.User.Name);
+					await Client.Disconnect ();
+					Client.Dispose ();
 				});
 
 				cgb.PrivateOnly ().UseGlobalWhitelist ().CreateCommand ("disable")
@@ -306,7 +308,12 @@ namespace DiscordBotCheckMinecraftStatus
 			
 			if (await Task.WhenAny (longRunning, Task.Delay (timeout)) == longRunning) {
 				// task completed within timeout
-				return await longRunning;
+				try {
+					return await longRunning;
+				} catch {
+					// TODO less stupid way of doing this
+					return defaultValue;
+				}
 			} else { 
 				// timeout logic
 				// TODO cancel properly

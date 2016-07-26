@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordBotCheckMinecraftStatus", "DiscordBotCheckMinecraftStatus\DiscordBotCheckMinecraftStatus.csproj", "{21C1092A-5253-4A55-8D16-CF65856B1C48}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordBotMinecraftChat", "DiscordBotMinecraftChat\DiscordBotMinecraftChat.csproj", "{ECEEBC56-D573-4082-BE97-E6A9EB02FCAE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -13,5 +15,9 @@ Global
 		{21C1092A-5253-4A55-8D16-CF65856B1C48}.Debug|x86.Build.0 = Debug|x86
 		{21C1092A-5253-4A55-8D16-CF65856B1C48}.Release|x86.ActiveCfg = Release|x86
 		{21C1092A-5253-4A55-8D16-CF65856B1C48}.Release|x86.Build.0 = Release|x86
+		{ECEEBC56-D573-4082-BE97-E6A9EB02FCAE}.Debug|x86.ActiveCfg = Debug|x86
+		{ECEEBC56-D573-4082-BE97-E6A9EB02FCAE}.Debug|x86.Build.0 = Debug|x86
+		{ECEEBC56-D573-4082-BE97-E6A9EB02FCAE}.Release|x86.ActiveCfg = Release|x86
+		{ECEEBC56-D573-4082-BE97-E6A9EB02FCAE}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 EndGlobal

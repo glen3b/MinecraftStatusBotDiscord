@@ -41,12 +41,76 @@ namespace DiscordBotCheckMinecraftStatus
 			};
 
 			while (isRunning) {
-				string consoleInput = Console.ReadLine ();
+				var consoleInput = Console.ReadLine ().ToLower().Split(' ');
 
-				// TODO parse
-				Console.WriteLine (consoleInput);
+				switch (consoleInput [0]) {
+				case "help":
+					Console.WriteLine ("Console admin interface v0");
+					Console.WriteLine ("Available commands:");
+					Console.WriteLine ("Help: Returns a console admin manual.");
+					Console.WriteLine ("Stop/Die: Terminates the bot.");
+					Console.WriteLine ("LockWeb/BlockPM: Blocks admins from using the private message interface to communicate with the bot.");
+					Console.WriteLine ("Logs <On|Off> [LogLevel]: Enables or disables verbose console logging. Defaults to off.");
+					break;
+				case "stop":
+				case "die":
+					EndProgram (main, out isRunning);
+					break;
+				case "lockweb":
+				case "blockpm":
+					// Duplicate the list
+					var admins = main.Client.GetWhitelistedUserIds ().Select ((a) => a);
+					foreach (var userId in admins) {
+						main.Client.RemoveFromWhitelist (userId);
+					}
+
+					Console.WriteLine ("Administrative whitelist cleared.");
+					break;
+				case "logs":
+					if (consoleInput.Length < 2) {
+						Console.WriteLine ("Toggle value required.");
+						break;
+					}
+
+					bool logsEnabled = false;
+
+					if (consoleInput [1] == "on" || consoleInput [1] == "1" || consoleInput [1] == "true") {
+						logsEnabled = true;
+					}
+
+					LogSeverity logLevel = _logLevel;
+
+					if (consoleInput.Length >= 3) {
+						if (!Enum.TryParse<LogSeverity> (consoleInput [2], true, out logLevel)) {
+							// Reset so we dont overwrite
+							logLevel = main.Client.Log.Level;
+						}
+					}
+
+					_logLevel = logLevel;
+
+					main.Client.Log.Message -= LogMessage;
+
+					if (logsEnabled) {
+						main.Client.Log.Message += LogMessage;
+						Console.WriteLine ("Logging enabled at verbosity level {0}.", logLevel);
+					} else {
+						Console.WriteLine ("Logging disabled.");
+					}
+					break;
+				}
 			}
 
+		}
+
+		private static LogSeverity _logLevel = LogSeverity.Info;
+
+		private static void LogMessage(object sender, LogMessageEventArgs args){
+			if (args.Severity < _logLevel) {
+				return;
+			}
+
+			Console.WriteLine ("[{0} / {1}] {2}", args.Source, args.Severity, args.Message);
 		}
 
 		private static void EndProgram (Program main, out bool controlFlag)
@@ -375,10 +439,6 @@ namespace DiscordBotCheckMinecraftStatus
 		// A wee bit of a hack
 		private async void CheckServerStatus (Channel channel, User alertOnFail)
 		{
-			if (alertOnFail != null) {
-				await channel.SendIsTyping ();
-			}
-
 			if (DateTime.Now - LastPing < Delay) {
 				if (alertOnFail != null) {
 					if (LastPing == DateTime.MaxValue) {
@@ -389,6 +449,10 @@ namespace DiscordBotCheckMinecraftStatus
 					}
 				}
 				return;
+			}
+
+			if (alertOnFail != null) {
+				await channel.SendIsTyping ();
 			}
 
 			LastPing = DateTime.Now;
@@ -416,7 +480,7 @@ namespace DiscordBotCheckMinecraftStatus
 			if (ping == -1 || servInfo == null || servInfo.Players.OnlinePlayers < 0) {
 				lastPingSuccess = false;
 				if (alertOnFail != null) {
-					await channel.SendMessage ("I cannot reach the Minecraft server; it's probably offline. You can do /minecraft alert to be alerted when the server shows up as online.");
+					await channel.SendMessage ("I cannot reach the Minecraft server; it's probably offline. You can do __/minecraft alert__ to be alerted when the server shows up as online.");
 				}
 			} else {
 				lastPingSuccess = true;
@@ -439,15 +503,17 @@ namespace DiscordBotCheckMinecraftStatus
 
 				StringBuilder onlineStatusMessage = new StringBuilder (
 					                                    string.Format
-					("The Minecraft server currently has {0} out of {2} player{1} online, and I can reach it with a ping of {3} ms.",
+					("The Minecraft server currently has **{0}** out of **{2}** player{1} online, and I can reach it with a ping of **{3} ms**.",
 						                                    servInfo.Players.OnlinePlayers, servInfo.Players.MaxPlayers == 1 ? string.Empty : "s",
 						                                    servInfo.Players.MaxPlayers, ping,
 						                                    MinecraftAddress, MinecraftPort == 25565 ? string.Empty : ':' + MinecraftPort.ToString ()));
 				if (servInfo.Players.Players.Length > 0) {
 
+					const string moreHumans = "others";
+
 					string[] players = servInfo.Players.Players.Select ((p) => p.Name).Union (
 						                   servInfo.Players.OnlinePlayers > servInfo.Players.Players.Length && servInfo.Players.Players.Length > 0 ?
-						new string[] { "others" } : new string[0]).ToArray ();
+						new string[] { moreHumans } : new string[0]).ToArray ();
 					
 
 					for (int i = 0; i < players.Length; i++) {
@@ -465,8 +531,19 @@ namespace DiscordBotCheckMinecraftStatus
 							onlineStatusMessage.Append (' ');
 						}
 
+						//Markdown italics
+
+						bool dontUseMarkdown = players [i] == moreHumans && i == players.Length - 1;
+
+						if (!dontUseMarkdown) {
+							onlineStatusMessage.Append ('*');
+						}
+
 						onlineStatusMessage.Append (players [i]);
 
+						if (!dontUseMarkdown) {
+							onlineStatusMessage.Append ('*');
+						}
 					}
 
 					onlineStatusMessage.Append (' ');
@@ -484,11 +561,17 @@ namespace DiscordBotCheckMinecraftStatus
 					
 				}
 
+				// Markdown underline
+				onlineStatusMessage.Append ("__");
+
 				onlineStatusMessage.Append (MinecraftAddress);
 				if (MinecraftPort != 25565) {
 					// Non-default
 					onlineStatusMessage.Append (':').Append (MinecraftPort);
 				}
+
+				// End markdown
+				onlineStatusMessage.Append("__");
 
 				// FIXME Punctuation - yes or no?
 				onlineStatusMessage.Append ('.');

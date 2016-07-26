@@ -30,7 +30,30 @@ namespace DiscordBotCheckMinecraftStatus
 				return;
 			}
 
-			new Program (ConfigurationManager.AppSettings ["AdminUserID"], ConfigurationManager.AppSettings ["MinecraftAddress"], ConfigurationManager.AppSettings ["ServerID"]).Execute (ConfigurationManager.AppSettings ["BotToken"]);
+
+			Program main = new Program (ConfigurationManager.AppSettings ["AdminUserID"], ConfigurationManager.AppSettings ["MinecraftAddress"], ConfigurationManager.AppSettings ["ServerID"]);
+			main.Execute (ConfigurationManager.AppSettings ["BotToken"]);
+
+			bool isRunning = true;
+
+			Console.CancelKeyPress += (object sender, ConsoleCancelEventArgs e) => {
+				EndProgram (main, out isRunning);	
+			};
+
+			while (isRunning) {
+				string consoleInput = Console.ReadLine ();
+
+				// TODO parse
+				Console.WriteLine (consoleInput);
+			}
+
+		}
+
+		private static void EndProgram (Program main, out bool controlFlag)
+		{
+			Console.WriteLine ("Disconnecting bot...");
+			controlFlag = false;
+			main.Terminate ();
 		}
 
 		public Program (string adminId, string minecraftAddress, string serverId)
@@ -589,7 +612,13 @@ namespace DiscordBotCheckMinecraftStatus
 
 		public void Execute (string token)
 		{
-			Client.ExecuteAndWait (() => Client.Connect (token));
+			Client.Connect (token);
+		}
+
+		public void Terminate ()
+		{
+			Client.Disconnect ();
+			Client.Dispose ();
 		}
 	}
 }

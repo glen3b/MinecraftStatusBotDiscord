@@ -8,11 +8,14 @@ namespace DiscordBotMinecraftChat
 	{
 		public static void Main (string[] args)
 		{
+			Console.WriteLine ("THIS BOT IS NONFUNCTIONAL");
+			Console.WriteLine ("PLEASE REMOVE THIS CODE TO RUN");
+			return;
+
 			Console.WriteLine ("Discord Minecraft Chat Synchronization Bot");
 			Console.WriteLine ("Copyright (C) 2016 Glen Husman");
 			Console.WriteLine ("Licensed under the GNU General Public License v3");
 
-			// https://discordapp.com/oauth2/authorize?client_id=207422434117287936&scope=bot&permissions=68608
 			new Program (ConfigurationManager.AppSettings["ChannelID"]).Execute (ConfigurationManager.AppSettings ["BotToken"]);
 		}
 

@@ -23,7 +23,6 @@ namespace DiscordBotCheckMinecraftStatus
 			Console.WriteLine ("Copyright (C) 2016 Glen Husman");
 			Console.WriteLine ("Licensed under the GNU General Public License v3");
 
-			// https://discordapp.com/oauth2/authorize?client_id=207342659868557312&scope=bot&permissions=68608
 			new Program (ConfigurationManager.AppSettings ["AdminUserID"], ConfigurationManager.AppSettings ["MinecraftAddress"], ConfigurationManager.AppSettings ["ServerID"]).Execute (ConfigurationManager.AppSettings ["BotToken"]);
 		}
 

@@ -92,6 +92,7 @@ namespace DiscordBotCheckMinecraftStatus
 					Console.WriteLine ("UserID {0} added to administrative whitelist.", id);
 
 							break;
+				case "log":
 				case "logs":
 					if (consoleInput.Length < 2) {
 						Console.WriteLine ("Toggle value required.");
@@ -122,6 +123,9 @@ namespace DiscordBotCheckMinecraftStatus
 						Console.WriteLine ("Logging disabled.");
 					}
 					break;
+				default:
+					Console.WriteLine ("Unrecognized command.");
+					break;
 				}
 			}
 
@@ -133,7 +137,8 @@ namespace DiscordBotCheckMinecraftStatus
 
 		private static void LogMessage (object sender, LogMessageEventArgs args)
 		{
-			if (!_printLogs || args.Severity < _logLevel) {
+			// Higher severity numbers correspond to lower log levels
+			if (!_printLogs || args.Severity > _logLevel) {
 				return;
 			}
 
@@ -390,7 +395,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 		private void LogAdminCommand (CommandEventArgs cmd)
 		{
-			Client.Log.Verbose ("BotAdmin Chat Interface", string.Format ("Received admin command '{0}' from '{1}'", cmd.Message.Text, cmd.User.Name));
+			Client.Log.Info("BotAdmin Chat Interface", string.Format ("Received admin command '{0}' from '{1}'", cmd.Message.Text, cmd.User.Name));
 		}
 
 		private void SetDefaultIfNeeded (CommandEventArgs arg)

@@ -50,16 +50,16 @@ namespace DiscordBotCheckMinecraftStatus
 			main.Client.Log.Message += LogMessage;
 
 			while (isRunning) {
-				var consoleInput = Console.ReadLine ().ToLower ().Split (' ');
+				var consoleInput = Console.ReadLine ().Split (' ');
 
-				switch (consoleInput [0]) {
+				switch (consoleInput [0].ToLower()) {
 				case "help":
 					Console.WriteLine ("Console admin interface v0");
 					Console.WriteLine ("Available commands:");
 					Console.WriteLine ("Help: Returns a console admin manual.");
 					Console.WriteLine ("Stop/Die: Terminates the bot.");
-					Console.WriteLine ("LockWeb/BlockPM: Blocks admins from using the private message interface to communicate with the bot.");
-					Console.WriteLine ("Logs <On|Off> [LogLevel]: Enables or disables verbose console logging. Defaults to on.");
+					Console.WriteLine ("ClearAdmin: Clears the list of bot administrators.");
+					Console.WriteLine ("Logs <On|Off> [LogLevel]: Enables or disables console logging. Defaults to on.");
 					Console.WriteLine ("GrantAdmin <UserID>: Grants bot administrative rights to the specified user.");
 					Console.WriteLine ("Say <Message>: Sends a message in the bot's default channel.");
 					break;
@@ -67,6 +67,9 @@ namespace DiscordBotCheckMinecraftStatus
 				case "die":
 					EndPrgm(null, null);
 					break;
+				case "clearadmins":
+				case "removeadmins":
+				case "clearadmin":
 				case "lockweb":
 				case "blockpm":
 					// Duplicate the list

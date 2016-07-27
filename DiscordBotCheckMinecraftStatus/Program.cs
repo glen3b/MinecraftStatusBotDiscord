@@ -40,7 +40,9 @@ namespace DiscordBotCheckMinecraftStatus
 			bool isRunning = true;
 
 			EndPrgm = (object sender, ConsoleCancelEventArgs e) => {
-				EndProgram (main, out isRunning);	
+				Console.WriteLine ("Disconnecting bot...");
+				isRunning = false;
+				main.Terminate ();
 			};
 
 			Console.CancelKeyPress += EndPrgm;
@@ -63,7 +65,7 @@ namespace DiscordBotCheckMinecraftStatus
 					break;
 				case "stop":
 				case "die":
-					EndProgram (main, out isRunning);
+					EndPrgm(null, null);
 					break;
 				case "lockweb":
 				case "blockpm":
@@ -166,13 +168,6 @@ namespace DiscordBotCheckMinecraftStatus
 			Console.WriteLine ("[{0} / {1}] {2}", args.Source, args.Severity, args.Message);
 		}
 
-		private static void EndProgram (Program main, out bool controlFlag)
-		{
-			Console.WriteLine ("Disconnecting bot...");
-			controlFlag = false;
-			main.Terminate ();
-		}
-
 		public Program (string adminId, string minecraftAddress, string serverId)
 		{
 			Client = new DiscordClient ();
@@ -189,9 +184,9 @@ namespace DiscordBotCheckMinecraftStatus
 				}
 
 				if (DefaultChannel != null) {
-					Client.Log.Verbose ("ServerAvailable", string.Format ("Using channel #{0} as the main channel.", DefaultChannel.Name));
+					Client.Log.Info ("ServerAvailable", string.Format ("Using channel #{0} as the main/default channel.", DefaultChannel.Name));
 				} else {
-					Client.Log.Info ("ServerAvailable", "No default channel found. This will prevent status updates until a user runs a command in a public channel.");
+					Client.Log.Warning ("ServerAvailable", "No default channel found. This will prevent status updates until a user runs a command in a public channel. The first command will set the default.");
 				}
 			};
 
@@ -342,9 +337,9 @@ namespace DiscordBotCheckMinecraftStatus
 					// No need to log, there's already a dedicated log
 
 					Client.Log.Warning ("BotAdmin Chat Interface", string.Format ("Received shutdown command from {0}.", arg.User.Name));
-					await Client.Disconnect ();
-					Client.Dispose ();
-
+//					await Client.Disconnect ();
+//					Client.Dispose ();
+//
 					EndPrgm (this, null);
 
 				});

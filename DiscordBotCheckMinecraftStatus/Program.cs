@@ -101,6 +101,7 @@ namespace DiscordBotCheckMinecraftStatus
 				}
 			}
 
+			System.Threading.Thread.Sleep (3000);
 		}
 
 		private static LogSeverity _logLevel = LogSeverity.Info;

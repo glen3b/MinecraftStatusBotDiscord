@@ -28,6 +28,9 @@ namespace DiscordBotCheckMinecraftStatus
 				return;
 			}
 
+			if (ConfigurationManager.AppSettings.AllKeys.Contains ("LogLevel")) {
+				Enum.TryParse<LogSeverity> (ConfigurationManager.AppSettings ["LogLevel"], true, out _logLevel);
+			}
 
 			Program main = new Program (ConfigurationManager.AppSettings ["AdminUserID"], ConfigurationManager.AppSettings ["MinecraftAddress"], ConfigurationManager.AppSettings ["ServerID"]);
 			main.Execute (ConfigurationManager.AppSettings ["BotToken"]);
@@ -127,7 +130,9 @@ namespace DiscordBotCheckMinecraftStatus
 			Client = new DiscordClient ();
 			Client.Ready += (object sender, EventArgs e) => {
 				Client.Log.Info ("OnReady", "Signed into Discord under bot username " + Client.CurrentUser.Name);
+			};
 
+			Client.ServerAvailable += (object sender, ServerEventArgs e) => {
 				// TODO check: If done right, returns null UNLESS a textchannel by the name of general can be found in the specified serve
 				DefaultChannel = ServerID.HasValue ? Client.GetServer (ServerID.Value)?.FindChannels ("general", ChannelType.Text)?.FirstOrDefault () : null;
 				if (DefaultChannel == null) {
@@ -136,12 +141,12 @@ namespace DiscordBotCheckMinecraftStatus
 				}
 
 				if (DefaultChannel != null) {
-					Client.Log.Verbose ("OnReady", string.Format ("Using channel #{0} as the main channel.", DefaultChannel.Name));
+					Client.Log.Verbose ("ServerAvailable", string.Format ("Using channel #{0} as the main channel.", DefaultChannel.Name));
 				} else {
-					Client.Log.Info ("OnReady", "No default channel found. This will prevent status updates until a user runs a command in a public channel.");
+					Client.Log.Info ("ServerAvailable", "No default channel found. This will prevent status updates until a user runs a command in a public channel.");
 				}
-
 			};
+
 //			Client.MessageReceived += (object sender, MessageEventArgs e) => {
 //				Console.WriteLine ("Received message in channel {0} from {1}: {2}", e.Channel.Name, e.User.Name, e.Message.Text);
 //			};

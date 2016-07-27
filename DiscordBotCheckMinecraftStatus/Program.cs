@@ -218,7 +218,7 @@ namespace DiscordBotCheckMinecraftStatus
 			// Since we have prefix-only invocations, these are not ambiguous
 			service.CreateCommand ("status")
 					.PublicOnly ().UseGlobalBlacklist ()
-					.Alias ("players", "mcserver")
+					.Alias ("players", "server", "ping")
 					.Description ("Checks if the Minecraft server is up and returns statistics such as playercount and ping.")
 					.Do (CheckServerStatus);
 
@@ -541,7 +541,7 @@ namespace DiscordBotCheckMinecraftStatus
 				Client.Log.Verbose ("CheckServerStatus", "Server ping failed, informing channel");
 
 				if (alertOnFail != null) {
-					await channel.SendMessage ("I cannot reach the Minecraft server; it's probably offline. You can run my __alert__ command to be alerted when the server shows up as online.");
+					await channel.SendMessage ("I cannot reach the Minecraft server; it's probably offline. You can run my `alert` command to be alerted when the server shows up as online.");
 				}
 			} else {
 				lastPingSuccess = true;

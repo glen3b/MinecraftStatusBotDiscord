@@ -17,6 +17,8 @@ namespace DiscordBotCheckMinecraftStatus
 {
 	class Program
 	{
+		private static ConsoleCancelEventHandler EndPrgm;
+
 		public static void Main (string[] args)
 		{
 			Console.WriteLine ("Discord Minecraft Checker Bot");
@@ -37,9 +39,11 @@ namespace DiscordBotCheckMinecraftStatus
 
 			bool isRunning = true;
 
-			Console.CancelKeyPress += (object sender, ConsoleCancelEventArgs e) => {
+			EndPrgm = (object sender, ConsoleCancelEventArgs e) => {
 				EndProgram (main, out isRunning);	
 			};
+
+			Console.CancelKeyPress += EndPrgm;
 
 			main.Client.Log.Message += LogMessage;
 
@@ -91,7 +95,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 					Console.WriteLine ("UserID {0} added to administrative whitelist.", id);
 
-							break;
+					break;
 				case "log":
 				case "logs":
 					if (consoleInput.Length < 2) {
@@ -191,10 +195,18 @@ namespace DiscordBotCheckMinecraftStatus
 			cfg.PrefixChar = null;
 			cfg.IsSelfBot = false;
 			cfg.HelpMode = HelpMode.Private;
+			cfg.CustomPrefixHandler = (m) => {
+				if (m.Channel.Server == null) {
+					// No prefix required for PMs
+					return 0;
+				}
+
+				// Other prefix handlers should've handled it
+				return -1;
+			};
 
 			CommandService service = new CommandService (cfg);
 			WhitelistService admins = new WhitelistService (adminIDNum);
-
 
 			Client.AddService (service);
 			Client.AddService (admins);
@@ -204,12 +216,14 @@ namespace DiscordBotCheckMinecraftStatus
 
 
 			// Since we have prefix-only invocations, these are not ambiguous
-			service.PublicOnly ().UseGlobalBlacklist ().CreateCommand ("status")
-					.Alias ("playercount", "ping", "list")
-					.Description ("Checks if the Minecraft server is up and returns statistics such as playercount.")
+			service.CreateCommand ("status")
+					.PublicOnly ().UseGlobalBlacklist ()
+					.Alias ("players", "mcserver")
+					.Description ("Checks if the Minecraft server is up and returns statistics such as playercount and ping.")
 					.Do (CheckServerStatus);
 
 			service.CreateCommand ("alert")
+					.UseGlobalBlacklist ()
 					.Alias ("subscribe", "notify")
 					.Description ("Notifies the invoker upon the next status check where the Minecraft server is online.")
 					.Do (async (arg) => {
@@ -228,71 +242,73 @@ namespace DiscordBotCheckMinecraftStatus
 			});
 
 			service.CreateGroup ("cooldown", ccgb => {
-				ccgb.UseGlobalWhitelist ().CreateCommand ("status")
+				ccgb.CreateCommand ("status")
 					.Alias ("check", "get")
 					.Description ("Returns the current cooldown status.")
 					.Do (async (arg) => {
-						LogAdminCommand (arg);
+					LogAdminCommand (arg);
 
-						if (ServerID.HasValue && arg.Server != null && arg.Server.Id != ServerID) {
-							// Not our server
-							return;
-						}
+					if (ServerID.HasValue && arg.Server != null && arg.Server.Id != ServerID) {
+						// Not our server
+						return;
+					}
 
-						TimeSpan cooldownRemaining = Delay - (DateTime.Now - LastPing);
-						if (cooldownRemaining < TimeSpan.Zero) {
-							await arg.Channel.SendMessage ($"The cooldown of {Delay.TotalSeconds} seconds is elapsed, you do not need to wait before pinging the server.");
-						} else {
-							double cooldownInSeconds = cooldownRemaining.TotalSeconds;
-							cooldownInSeconds *= 100;
-							cooldownInSeconds = (int)cooldownInSeconds;
-							cooldownInSeconds /= 100;
+					TimeSpan cooldownRemaining = Delay - (DateTime.Now - LastPing);
+					if (cooldownRemaining < TimeSpan.Zero) {
+						await arg.Channel.SendMessage ($"The cooldown of {Delay.TotalSeconds} seconds is elapsed, you do not need to wait before pinging the server.");
+					} else {
+						double cooldownInSeconds = cooldownRemaining.TotalSeconds;
+						cooldownInSeconds *= 100;
+						cooldownInSeconds = (int)cooldownInSeconds;
+						cooldownInSeconds /= 100;
 
-							await arg.Channel.SendMessage (string.Format ("There are {0} seconds remaining on the total cooldown of {1} seconds.", cooldownInSeconds, Delay.TotalSeconds));
-						}
-					});
+						await arg.Channel.SendMessage (string.Format ("There are {0} seconds remaining on the total cooldown of {1} seconds.", cooldownInSeconds, Delay.TotalSeconds));
+					}
+				});
 
-				ccgb.UseGlobalWhitelist ().CreateCommand ("reset")
+				ccgb.CreateCommand ("reset")
 					.Description ("Resets the cooldown.")
 					.Do (async (arg) => {
 
-						LogAdminCommand (arg);
+					LogAdminCommand (arg);
 
-						if (ServerID.HasValue && arg.Server != null && arg.Server.Id != ServerID) {
-							// Not our server
-							return;
-						}
+					if (ServerID.HasValue && arg.Server != null && arg.Server.Id != ServerID) {
+						// Not our server
+						return;
+					}
 
-						if (LastPing == DateTime.MaxValue) {
-							LastPing = DateTime.MinValue;
-							await arg.Channel.SendMessage ("Server pings enabled.");
-						} else {
-							LastPing = DateTime.MinValue;
-							await arg.Channel.SendMessage ("Cooldown reset.");
-						}
+					if (LastPing == DateTime.MaxValue) {
+						LastPing = DateTime.MinValue;
+						await arg.Channel.SendMessage ("Server pings enabled.");
+					} else {
+						LastPing = DateTime.MinValue;
+						await arg.Channel.SendMessage ("Cooldown reset.");
+					}
 
-					});
+				});
 
-				ccgb.UseGlobalWhitelist ().CreateCommand ("set")
+				ccgb.CreateCommand ("set")
 					.Parameter ("cooldown", ParameterType.Required) 
 					.Description ("Sets the cooldown in between invocations in milliseconds.")
 					.Do (async (arg) => {
 
-						LogAdminCommand (arg);
+					LogAdminCommand (arg);
 
-						int cooldownMs;
-						if (!int.TryParse (arg.Args [0], out cooldownMs)) {
-							await arg.Channel.SendMessage ("Error parsing cooldown.");
-							return;
-						}
+					int cooldownMs;
+					if (!int.TryParse (arg.Args [0], out cooldownMs)) {
+						await arg.Channel.SendMessage ("Error parsing cooldown.");
+						return;
+					}
 
-						Delay = TimeSpan.FromMilliseconds (cooldownMs);
-						await arg.Channel.SendMessage (string.Format ("Cooldown set to {0} seconds.", Delay.TotalSeconds));
-					});
+					Delay = TimeSpan.FromMilliseconds (cooldownMs);
+					await arg.Channel.SendMessage (string.Format ("Cooldown set to {0} seconds.", Delay.TotalSeconds));
+				});
 			});
 
 			service.CreateGroup ("admin", cgb => {
-				cgb.UseGlobalWhitelist ().CreateCommand ("ping")
+				cgb.UseGlobalWhitelist ();
+
+				cgb.CreateCommand ("ping")
 					.Alias ("hello")
 					.Description ("Pings the bot.")
 					.Do (async (arg) => {
@@ -301,7 +317,8 @@ namespace DiscordBotCheckMinecraftStatus
 					await arg.Channel.SendMessage ("Pong!");
 				});
 
-				cgb.UseGlobalWhitelist ().CreateCommand ("shutdown")
+				cgb.CreateCommand ("shutdown")
+					.PrivateOnly ()
 					.Alias ("die")
 					.Description ("Kills the bot.")
 					.Do (async (arg) => {
@@ -310,9 +327,13 @@ namespace DiscordBotCheckMinecraftStatus
 					Client.Log.Warning ("BotAdmin Chat Interface", string.Format ("Received shutdown command from {0}.", arg.User.Name));
 					await Client.Disconnect ();
 					Client.Dispose ();
+
+					EndPrgm (this, null);
+
 				});
 
-				cgb.UseGlobalWhitelist ().CreateCommand ("disable")
+				cgb.CreateCommand ("disable")
+					.PrivateOnly ()
 					.Alias ("lock")
 					.Description ("Disables the bots ping functionality.")
 					.Do (async (arg) => {
@@ -323,7 +344,8 @@ namespace DiscordBotCheckMinecraftStatus
 				});
 
 				cgb.CreateGroup ("defaultchannel", (ccgb) => {
-					ccgb.PublicOnly ().UseGlobalWhitelist ().CreateCommand ("set")
+					ccgb.CreateCommand ("set")
+						.PublicOnly ()
 						.Description ("Sets the default channel for alerts to your current channel.")
 						.Do (async (arg) => {
 						LogAdminCommand (arg);
@@ -336,7 +358,8 @@ namespace DiscordBotCheckMinecraftStatus
 						await arg.User.SendMessage (string.Format ("Default channel for alerts set to #{0}.", arg.Channel.Name));
 					});
 
-					ccgb.UseGlobalWhitelist ().CreateCommand ("get")
+					ccgb.CreateCommand ("get")
+						.PrivateOnly ()
 						.Description ("Gets the default channel.")
 						.Do (async (arg) => {
 						LogAdminCommand (arg);
@@ -395,7 +418,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 		private void LogAdminCommand (CommandEventArgs cmd)
 		{
-			Client.Log.Info("BotAdmin Chat Interface", string.Format ("Received admin command '{0}' from '{1}'", cmd.Message.Text, cmd.User.Name));
+			Client.Log.Info ("BotAdmin Chat Interface", string.Format ("Received admin command '{0}' from '{1}'", cmd.Message.Text, cmd.User.Name));
 		}
 
 		private void SetDefaultIfNeeded (CommandEventArgs arg)

@@ -92,10 +92,8 @@ namespace DiscordBotCheckMinecraftStatus
 
 					_logLevel = logLevel;
 
-					main.Client.Log.Message -= LogMessage;
-
+					_printLogs = logsEnabled;
 					if (logsEnabled) {
-						main.Client.Log.Message += LogMessage;
 						Console.WriteLine ("Logging enabled at verbosity level {0}.", logLevel);
 					} else {
 						Console.WriteLine ("Logging disabled.");
@@ -107,11 +105,12 @@ namespace DiscordBotCheckMinecraftStatus
 			System.Threading.Thread.Sleep (3000);
 		}
 
+		private static bool _printLogs = true;
 		private static LogSeverity _logLevel = LogSeverity.Info;
 
 		private static void LogMessage (object sender, LogMessageEventArgs args)
 		{
-			if (args.Severity < _logLevel) {
+			if (!_printLogs || args.Severity < _logLevel) {
 				return;
 			}
 
@@ -161,7 +160,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 			CommandServiceConfigBuilder cfg = new CommandServiceConfigBuilder ();
 			cfg.AllowMentionPrefix = true;
-			cfg.PrefixChar = '/';
+			cfg.PrefixChar = null;
 			cfg.IsSelfBot = false;
 			cfg.HelpMode = HelpMode.Private;
 

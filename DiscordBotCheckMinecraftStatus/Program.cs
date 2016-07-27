@@ -125,7 +125,7 @@ namespace DiscordBotCheckMinecraftStatus
 				}
 			}
 
-			System.Threading.Thread.Sleep (3000);
+			System.Threading.Thread.Sleep (1000);
 		}
 
 		private static bool _printLogs = true;
@@ -223,7 +223,7 @@ namespace DiscordBotCheckMinecraftStatus
 			});
 
 			service.CreateGroup ("admin", cgb => {
-				cgb.PrivateOnly ().UseGlobalWhitelist ().CreateCommand ("hello")
+				cgb.UseGlobalWhitelist ().CreateCommand ("hello")
 					.Alias ("helloworld", "ping")
 					.Description ("Pings the bot.")
 					.Do (async (arg) => {
@@ -232,7 +232,7 @@ namespace DiscordBotCheckMinecraftStatus
 					await arg.Channel.SendMessage ("Hello world!");
 				});
 
-				cgb.PrivateOnly ().UseGlobalWhitelist ().CreateCommand ("shutdown")
+				cgb.UseGlobalWhitelist ().CreateCommand ("shutdown")
 					.Alias ("die")
 					.Description ("Kills the bot.")
 					.Do (async (arg) => {
@@ -243,7 +243,7 @@ namespace DiscordBotCheckMinecraftStatus
 					Client.Dispose ();
 				});
 
-				cgb.PrivateOnly ().UseGlobalWhitelist ().CreateCommand ("disable")
+				cgb.UseGlobalWhitelist ().CreateCommand ("disable")
 					.Alias ("lock")
 					.Description ("Disables the bots ping functionality.")
 					.Do (async (arg) => {
@@ -267,7 +267,7 @@ namespace DiscordBotCheckMinecraftStatus
 						await arg.User.SendMessage (string.Format ("Default channel for alerts set to #{0}.", arg.Channel.Name));
 					});
 
-					ccgb.PrivateOnly ().UseGlobalWhitelist ().CreateCommand ("get")
+					ccgb.UseGlobalWhitelist ().CreateCommand ("get")
 						.Description ("Gets the default channel.")
 						.Do (async (arg) => {
 						LogAdminCommand (arg);
@@ -327,7 +327,7 @@ namespace DiscordBotCheckMinecraftStatus
 						
 					});
 
-					ccgb.UseGlobalWhitelist ().PrivateOnly ().CreateCommand ("set")
+					ccgb.UseGlobalWhitelist ().CreateCommand ("set")
 						.Parameter ("cooldown", ParameterType.Required) 
 						.Description ("Sets the cooldown in between invocations in milliseconds.")
 						.Do (async (arg) => {
@@ -513,7 +513,7 @@ namespace DiscordBotCheckMinecraftStatus
 				Client.Log.Verbose ("CheckServerStatus", "Server ping failed, informing channel");
 
 				if (alertOnFail != null) {
-					await channel.SendMessage ("I cannot reach the Minecraft server; it's probably offline. You can do __/minecraft alert__ to be alerted when the server shows up as online.");
+					await channel.SendMessage ("I cannot reach the Minecraft server; it's probably offline. You can run my __alert__ command to be alerted when the server shows up as online.");
 				}
 			} else {
 				lastPingSuccess = true;

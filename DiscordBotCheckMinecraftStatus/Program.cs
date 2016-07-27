@@ -59,6 +59,7 @@ namespace DiscordBotCheckMinecraftStatus
 					Console.WriteLine ("LockWeb/BlockPM: Blocks admins from using the private message interface to communicate with the bot.");
 					Console.WriteLine ("Logs <On|Off> [LogLevel]: Enables or disables verbose console logging. Defaults to on.");
 					Console.WriteLine ("GrantAdmin <UserID>: Grants bot administrative rights to the specified user.");
+					Console.WriteLine ("Say <Message>: Sends a message in the bot's default channel.");
 					break;
 				case "stop":
 				case "die":
@@ -127,6 +128,22 @@ namespace DiscordBotCheckMinecraftStatus
 						Console.WriteLine ("Logging disabled.");
 					}
 					break;
+				case "say":
+				case "broadcast":
+					if (consoleInput.Length < 2) {
+						Console.WriteLine ("No message specified.");
+						break;
+					}
+
+					if (main.DefaultChannel == null) {
+						Console.WriteLine ("Default channel not defined.");
+						break;
+					}
+
+					main.DefaultChannel.SendMessage (string.Join (" ", consoleInput.Skip (1)));
+
+					Console.WriteLine ("Message broadcasted.");
+					break;
 				default:
 					Console.WriteLine ("Unrecognized command.");
 					break;
@@ -137,7 +154,7 @@ namespace DiscordBotCheckMinecraftStatus
 		}
 
 		private static bool _printLogs = true;
-		private static LogSeverity _logLevel = LogSeverity.Info;
+		private static LogSeverity _logLevel = LogSeverity.Warning;
 
 		private static void LogMessage (object sender, LogMessageEventArgs args)
 		{

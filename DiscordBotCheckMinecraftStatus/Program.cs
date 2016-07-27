@@ -375,7 +375,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 		public string MinecraftAddress;
 		public short MinecraftPort = 25565;
-		public TimeSpan Delay = TimeSpan.FromSeconds (30);
+		public TimeSpan Delay = TimeSpan.FromSeconds (60);
 		public ulong? ServerID;
 
 		/// <summary>
@@ -387,8 +387,7 @@ namespace DiscordBotCheckMinecraftStatus
 		private bool lastPingSuccess = true;
 		private System.Threading.Timer StatusCheckTimer;
 
-		// FIXME set to value
-		private IMinecraftStatusProvider ServerStatus;
+		private IMinecraftStatusProvider ServerStatus = MinecraftStatusChecker.Instance;
 
 		private void OnStatusTimer (object userState)
 		{
@@ -461,7 +460,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 					// TODO fix
 
-					servInfo = await GetServerInfo();
+					servInfo = await ServerStatus.GetStatus(MinecraftAddress, MinecraftPort);
 					//servInfo = await TaskWithTimeout (GetServerInfo (), ErrorServerInfo);
 				}
 			} catch {
@@ -551,7 +550,7 @@ namespace DiscordBotCheckMinecraftStatus
 					onlineStatusMessage.Append (" online. You can join them at ");
 
 				} else {
-					onlineStatusMessage.Append ("Join it now at ");
+					onlineStatusMessage.Append (" Join it now at ");
 					
 				}
 
@@ -632,21 +631,6 @@ namespace DiscordBotCheckMinecraftStatus
 //			return Dns.GetHostEntry (arg).AddressList.FirstOrDefault (item => item.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
 //		}
 
-		private IServerStatus GetServerInfoSynch(){
-			IServerStatus info = null;
-			try {
-
-				info = ServerStatus.GetStatus(MinecraftAddress, MinecraftPort);
-				return info;
-			} catch {
-				return info;
-			}
-		}
-
-		private Task<IServerStatus> GetServerInfo ()
-		{
-			return Task.Run (GetServerInfoSynch);
-		}
 
 		protected DateTime LastPing = DateTime.MinValue;
 

@@ -463,7 +463,11 @@ namespace DiscordBotCheckMinecraftStatus
 			try {
 				ping = await PingAddress (MinecraftAddress);
 				if (ping >= 0) {
-					servInfo = await TaskWithTimeout (GetServerInfo (), ErrorServerInfo);
+
+					// TODO fix
+
+					servInfo = await GetServerInfo();
+					//servInfo = await TaskWithTimeout (GetServerInfo (), ErrorServerInfo);
 				}
 				if (servInfo.Latency < TimeSpan.Zero || ping == -1) {
 					ping = -1;
@@ -638,20 +642,20 @@ namespace DiscordBotCheckMinecraftStatus
 			return Dns.GetHostEntry (arg).AddressList.FirstOrDefault (item => item.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
 		}
 
+		private ServerStatus GetServerInfoSynch(){
+			ServerStatus info = ErrorServerInfo;
+			try {
+
+				info = ServerPing.DoPing (ParseMinecraftEndPoint (), MinecraftAddress);
+				return info;
+			} catch {
+				return info;
+			}
+		}
+
 		private Task<ServerStatus> GetServerInfo ()
 		{
-			return Task.Run (
-				() => {
-					ServerStatus info = ErrorServerInfo;
-					try {
-
-						info = ServerPing.DoPing (ParseMinecraftEndPoint (), MinecraftAddress);
-						return info;
-					} catch {
-						return info;
-					}
-				}
-			);
+			return Task.Run (GetServerInfoSynch);
 		}
 
 		protected DateTime LastPing = DateTime.MinValue;

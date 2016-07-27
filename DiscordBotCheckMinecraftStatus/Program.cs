@@ -54,6 +54,7 @@ namespace DiscordBotCheckMinecraftStatus
 					Console.WriteLine ("Stop/Die: Terminates the bot.");
 					Console.WriteLine ("LockWeb/BlockPM: Blocks admins from using the private message interface to communicate with the bot.");
 					Console.WriteLine ("Logs <On|Off> [LogLevel]: Enables or disables verbose console logging. Defaults to on.");
+					Console.WriteLine ("GrantAdmin <UserID>: Grants bot administrative rights to the specified user.");
 					break;
 				case "stop":
 				case "die":
@@ -63,12 +64,34 @@ namespace DiscordBotCheckMinecraftStatus
 				case "blockpm":
 					// Duplicate the list
 					var admins = main.Client.GetWhitelistedUserIds ().Select ((a) => a);
+					int removed = 0;
 					foreach (var userId in admins) {
 						main.Client.RemoveFromWhitelist (userId);
+						removed++;
 					}
 
-					Console.WriteLine ("Administrative whitelist cleared.");
+					Console.WriteLine ("Administrative whitelist cleared of {0} user{1}.", removed, removed == 1 ? string.Empty : "s");
 					break;
+				case "addadmin":
+				case "addmin":
+				case "grantadmin":
+					if (consoleInput.Length < 2) {
+						Console.WriteLine ("Target user required.");
+						break;
+					}
+
+					ulong id;
+
+					if (!ulong.TryParse (consoleInput [1])) {
+						Console.WriteLine ("Specified value not a user ID.");
+						break;
+					}
+
+					main.Client.WhitelistUser (id);
+
+					Console.WriteLine ("UserID {0} added to administrative whitelist.", id);
+
+							break;
 				case "logs":
 					if (consoleInput.Length < 2) {
 						Console.WriteLine ("Toggle value required.");

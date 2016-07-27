@@ -82,7 +82,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 					ulong id;
 
-					if (!ulong.TryParse (consoleInput [1])) {
+					if (!ulong.TryParse (consoleInput [1], out id)) {
 						Console.WriteLine ("Specified value not a user ID.");
 						break;
 					}

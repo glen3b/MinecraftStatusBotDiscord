@@ -11,8 +11,6 @@ using Discord.Commands.Permissions.Visibility;
 using System.Threading.Tasks;
 using System.Net.NetworkInformation;
 using System.Text;
-using Craft.Net.Client;
-using Craft.Net;
 using System.Net;
 
 namespace DiscordBotCheckMinecraftStatus
@@ -389,11 +387,8 @@ namespace DiscordBotCheckMinecraftStatus
 		private bool lastPingSuccess = true;
 		private System.Threading.Timer StatusCheckTimer;
 
-		private ServerStatus ErrorServerInfo {
-			get {
-				return null;
-			}
-		}
+		// FIXME set to value
+		private IMinecraftStatusProvider ServerStatus;
 
 		private void OnStatusTimer (object userState)
 		{
@@ -458,7 +453,7 @@ namespace DiscordBotCheckMinecraftStatus
 			LastPing = DateTime.Now;
 
 			long ping = -1;
-			ServerStatus servInfo = ErrorServerInfo;
+			IServerStatus servInfo = null;
 
 			try {
 				ping = await PingAddress (MinecraftAddress);
@@ -469,19 +464,14 @@ namespace DiscordBotCheckMinecraftStatus
 					servInfo = await GetServerInfo();
 					//servInfo = await TaskWithTimeout (GetServerInfo (), ErrorServerInfo);
 				}
-				if (servInfo.Latency < TimeSpan.Zero || ping == -1) {
-					ping = -1;
-				} else {
-					ping = (long)(Math.Max ((long)(servInfo.Latency.TotalMilliseconds), ping));
-				}
 			} catch {
 				// Blanket catch all
 				ping = -1;
-				servInfo = ErrorServerInfo;
+				servInfo = null;
 			}
 
 
-			if (ping == -1 || servInfo == null || servInfo.Players.OnlinePlayers < 0) {
+			if (ping == -1 || servInfo == null || servInfo.OnlinePlayerCount < 0) {
 				lastPingSuccess = false;
 				if (alertOnFail != null) {
 					await channel.SendMessage ("I cannot reach the Minecraft server; it's probably offline. You can do __/minecraft alert__ to be alerted when the server shows up as online.");
@@ -508,15 +498,15 @@ namespace DiscordBotCheckMinecraftStatus
 				StringBuilder onlineStatusMessage = new StringBuilder (
 					                                    string.Format
 					("The Minecraft server currently has **{0}** out of **{2}** player{1} online, and I can reach it with a ping of **{3} ms**.",
-						                                    servInfo.Players.OnlinePlayers, servInfo.Players.MaxPlayers == 1 ? string.Empty : "s",
-						                                    servInfo.Players.MaxPlayers, ping,
+						servInfo.OnlinePlayerCount, servInfo.MaxPlayerCount == 1 ? string.Empty : "s",
+						servInfo.MaxPlayerCount, ping,
 						                                    MinecraftAddress, MinecraftPort == 25565 ? string.Empty : ':' + MinecraftPort.ToString ()));
-				if (servInfo.Players.Players.Length > 0) {
+				if (servInfo.PlayerSample.Count() > 0) {
 
 					const string moreHumans = "others";
 
-					string[] players = servInfo.Players.Players.Select ((p) => p.Name).Union (
-						                   servInfo.Players.OnlinePlayers > servInfo.Players.Players.Length && servInfo.Players.Players.Length > 0 ?
+					string[] players = servInfo.PlayerSample.Select ((p) => p).Union (
+						servInfo.OnlinePlayerCount > servInfo.PlayerSample.Count() && servInfo.PlayerSample.Count() > 0 ?
 						new string[] { moreHumans } : new string[0]).ToArray ();
 					
 
@@ -626,34 +616,34 @@ namespace DiscordBotCheckMinecraftStatus
 			);
 		}
 
-		private IPEndPoint ParseMinecraftEndPoint ()
-		{
-			IPAddress address;
+//		private IPEndPoint ParseMinecraftEndPoint ()
+//		{
+//			IPAddress address;
+//
+//			if (!IPAddress.TryParse (MinecraftAddress, out address)) {
+//				address = ResolveDNS (MinecraftAddress);
+//			}
+//
+//			return new IPEndPoint (address, MinecraftPort);
+//		}
+//
+//		private static IPAddress ResolveDNS (string arg)
+//		{
+//			return Dns.GetHostEntry (arg).AddressList.FirstOrDefault (item => item.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+//		}
 
-			if (!IPAddress.TryParse (MinecraftAddress, out address)) {
-				address = ResolveDNS (MinecraftAddress);
-			}
-
-			return new IPEndPoint (address, MinecraftPort);
-		}
-
-		private static IPAddress ResolveDNS (string arg)
-		{
-			return Dns.GetHostEntry (arg).AddressList.FirstOrDefault (item => item.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
-		}
-
-		private ServerStatus GetServerInfoSynch(){
-			ServerStatus info = ErrorServerInfo;
+		private IServerStatus GetServerInfoSynch(){
+			IServerStatus info = null;
 			try {
 
-				info = ServerPing.DoPing (ParseMinecraftEndPoint (), MinecraftAddress);
+				info = ServerStatus.GetStatus(MinecraftAddress, MinecraftPort);
 				return info;
 			} catch {
 				return info;
 			}
 		}
 
-		private Task<ServerStatus> GetServerInfo ()
+		private Task<IServerStatus> GetServerInfo ()
 		{
 			return Task.Run (GetServerInfoSynch);
 		}

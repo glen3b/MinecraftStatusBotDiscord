@@ -58,27 +58,6 @@
     <Reference Include="RestSharp">
       <HintPath>..\packages\RestSharp.105.2.3\lib\net45\RestSharp.dll</HintPath>
     </Reference>
-    <Reference Include="fNbt">
-      <HintPath>fNbt.dll</HintPath>
-    </Reference>
-    <Reference Include="Craft.Net.Anvil">
-      <HintPath>Craft.Net.Anvil.dll</HintPath>
-    </Reference>
-    <Reference Include="Craft.Net.Client">
-      <HintPath>Craft.Net.Client.dll</HintPath>
-    </Reference>
-    <Reference Include="Craft.Net.Common">
-      <HintPath>Craft.Net.Common.dll</HintPath>
-    </Reference>
-    <Reference Include="Craft.Net">
-      <HintPath>Craft.Net.dll</HintPath>
-    </Reference>
-    <Reference Include="Craft.Net.Physics">
-      <HintPath>Craft.Net.Physics.dll</HintPath>
-    </Reference>
-    <Reference Include="Craft.Net.Logic">
-      <HintPath>Craft.Net.Logic.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -87,35 +66,13 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="IServerStatus.cs" />
+    <Compile Include="IMinecraftStatusProvider.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets" Condition="Exists('..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets')" />
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="app.config" />
-    <None Include="Craft.Net.Anvil.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Craft.Net.Client.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Craft.Net.Common.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Craft.Net.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Craft.Net.Logic.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Craft.Net.Physics.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="fNbt.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Ionic.Zip.Reduced.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 </Project>

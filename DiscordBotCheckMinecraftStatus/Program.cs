@@ -174,32 +174,32 @@ namespace DiscordBotCheckMinecraftStatus
 			// May use for abuse prevention
 			Client.AddService (new BlacklistService ());
 
-			service.CreateGroup ("minecraft", cgb => {
-				cgb.PublicOnly ().UseGlobalBlacklist ().CreateCommand ("status")
+
+			// Since we have prefix-only invocations, these are not ambiguous
+			service.PublicOnly ().UseGlobalBlacklist ().CreateCommand ("status")
 					.Alias ("playercount", "ping", "list")
 					.Description ("Checks if the Minecraft server is up and returns statistics such as playercount.")
 					.Do (CheckServerStatus);
 
-				cgb.CreateCommand ("alert")
+			service.CreateCommand ("alert")
 					.Alias ("subscribe", "notify")
 					.Description ("Notifies the invoker upon the next status check where the Minecraft server is online.")
 					.Do (async (arg) => {
-					// TODO a bit of a hack
-					// Set the default channel, if not already set, to the first non-private channel a status command is received from
-					SetDefaultIfNeeded (arg);
+				// TODO a bit of a hack
+				// Set the default channel, if not already set, to the first non-private channel a status command is received from
+				SetDefaultIfNeeded (arg);
 
-					if (lastPingSuccess) {
-						await arg.User.SendMessage ("The server was up when last checked; you cannot currently subscribe to downtime.");
-					} else if (NotifyOnUptime.Contains (arg.User)) {
-						await arg.User.SendMessage ("You are already subscribed to the next uptime notification.");
-					} else {
-						NotifyOnUptime.Add (arg.User);
-						await arg.User.SendMessage ("You will be notified when the server comes back online.");
-					}
-				});
+				if (lastPingSuccess) {
+					await arg.User.SendMessage ("The server was up when last checked; you cannot currently subscribe to downtime.");
+				} else if (NotifyOnUptime.Contains (arg.User)) {
+					await arg.User.SendMessage ("You are already subscribed to the next uptime notification.");
+				} else {
+					NotifyOnUptime.Add (arg.User);
+					await arg.User.SendMessage ("You will be notified when the server comes back online.");
+				}
 			});
 
-			service.CreateGroup ("botadmin", cgb => {
+			service.CreateGroup ("admin", cgb => {
 				cgb.PrivateOnly ().UseGlobalWhitelist ().CreateCommand ("hello")
 					.Alias ("helloworld", "ping")
 					.Description ("Pings the bot.")
@@ -421,23 +421,23 @@ namespace DiscordBotCheckMinecraftStatus
 			}
 		}
 
-//		protected async Task<TResult> TaskWithTimeout<TResult> (Task<TResult> longRunning, TResult defaultValue, int timeout = 5000)
-//		{
-//			
-//			if (await Task.WhenAny (longRunning, Task.Delay (timeout)) == longRunning) {
-//				// task completed within timeout
-//				try {
-//					return await longRunning;
-//				} catch {
-//					// TODO less stupid way of doing this
-//					return defaultValue;
-//				}
-//			} else { 
-//				// timeout logic
-//				// TODO cancel properly
-//				return defaultValue;
-//			}
-//		}
+		//		protected async Task<TResult> TaskWithTimeout<TResult> (Task<TResult> longRunning, TResult defaultValue, int timeout = 5000)
+		//		{
+		//
+		//			if (await Task.WhenAny (longRunning, Task.Delay (timeout)) == longRunning) {
+		//				// task completed within timeout
+		//				try {
+		//					return await longRunning;
+		//				} catch {
+		//					// TODO less stupid way of doing this
+		//					return defaultValue;
+		//				}
+		//			} else {
+		//				// timeout logic
+		//				// TODO cancel properly
+		//				return defaultValue;
+		//			}
+		//		}
 
 		// TODO alertOnFail param == null means no alert on fail, set to value means alert that user OR if applicable alert the channel the CMD was received in
 		// A wee bit of a hack
@@ -524,7 +524,7 @@ namespace DiscordBotCheckMinecraftStatus
 						                                    MinecraftAddress, MinecraftPort == 25565 ? string.Empty : ':' + MinecraftPort.ToString ()));
 				if (servInfo.PlayerSample.Count () > 0) {
 					
-					Client.Log.Debug ("CheckServerStatus", "Appending sample userlist of size " + servInfo.PlayerSample.Count() + " to message");
+					Client.Log.Debug ("CheckServerStatus", "Appending sample userlist of size " + servInfo.PlayerSample.Count () + " to message");
 
 					const string moreHumans = "others";
 

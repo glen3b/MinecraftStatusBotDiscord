@@ -52,20 +52,25 @@ namespace DiscordBotCheckMinecraftStatus
 			while (isRunning) {
 				var consoleInput = Console.ReadLine ().Split (' ');
 
-				switch (consoleInput [0].ToLower()) {
+				switch (consoleInput [0].ToLower ()) {
 				case "help":
 					Console.WriteLine ("Console admin interface v0");
 					Console.WriteLine ("Available commands:");
 					Console.WriteLine ("Help: Returns a console admin manual.");
+					Console.WriteLine ("GetServers: Returns the list of servers to which this bot is subscribed.");
 					Console.WriteLine ("Stop/Die: Terminates the bot.");
 					Console.WriteLine ("ClearAdmin: Clears the list of bot administrators.");
 					Console.WriteLine ("Logs <On|Off> [LogLevel]: Enables or disables console logging. Defaults to on.");
 					Console.WriteLine ("GrantAdmin <UserID>: Grants bot administrative rights to the specified user.");
-					Console.WriteLine ("Say <Message>: Sends a message in the bot's default channel.");
+					Console.WriteLine ("Say <Server#> <Message>: Sends a message in the given server's default channel.");
+					break;
+				case "getservers":
+				case "listservers":
+					Console.WriteLine ("Not implemented.");
 					break;
 				case "stop":
 				case "die":
-					EndPrgm(null, null);
+					EndPrgm (null, null);
 					break;
 				case "clearadmins":
 				case "removeadmins":
@@ -136,9 +141,82 @@ namespace DiscordBotCheckMinecraftStatus
 				case "say":
 				case "broadcast":
 					if (consoleInput.Length < 2) {
+						Console.WriteLine ("No server specified.");
+						break;
+					}
+
+					if (consoleInput.Length < 3) {
 						Console.WriteLine ("No message specified.");
 						break;
 					}
+
+					string serverPartial = consoleInput [1];
+					int? matchIndex = null;
+					if (serverPartial.Contains (':')) {
+						string[] servPartParts = serverPartial.Split (':');
+
+						// Try to parse the last colon-delimited value as the index
+						int outVal;
+						if (int.TryParse (servPartParts.Last (), out outVal)) {
+							// All other colons are part of main string
+							matchIndex = outVal;
+							serverPartial = string.Join (":", servPartParts.Take (servPartParts.Length - 1));
+						}
+					}
+
+					// FIXME the human aspect of this RELIES on the order remaining constant within a given 2 queries
+					// Probably de-facto OK, but not tested and not guaranteed
+					Server[] servers = null;
+
+					ulong testId;
+					if (ulong.TryParse (serverPartial, out testId)) {
+
+						Server byId = null;
+						try {
+							byId = main.Client.GetServer (testId);
+						} catch {
+						}
+
+						if (byId != null) {
+							servers = new Server[] { byId };
+						}
+					}
+
+					if (servers == null) {
+						servers = main.Client.FindServers (serverPartial).ToArray ();
+					}
+
+					Server inUse = null;
+
+					if (servers.Length == 0) {
+						Console.WriteLine ("No servers with the specified name or ID found.");
+						break;
+					} else if (servers.Length > 1) {
+						Console.WriteLine ("{0} servers found.", servers.Length);
+						if (matchIndex.HasValue) {
+							Console.WriteLine ("Using server at index {0}.", matchIndex.Value);
+							inUse = servers [matchIndex.Value];
+						} else if (servers.Length < 10) {
+							// Only list reasonable amounts of servers
+							Console.WriteLine ("You can append :<number> to your queries to reference a particular server from this list.");
+							for (int i = 0; i < servers.Length; i++) {
+								Console.WriteLine ("#{0}: {1}", i, servers [i].Name);
+							}
+							break;
+						} else {
+							Console.WriteLine ("Please try a more specific query.");
+							break;
+						}
+					} else {
+						// Just right
+						inUse = servers [0];
+					}
+
+					if(inUse == null){
+						break;
+					}
+
+					// TODO find default channel and send message
 
 					if (main.DefaultChannel == null) {
 						Console.WriteLine ("Default channel not defined.");
@@ -191,13 +269,19 @@ namespace DiscordBotCheckMinecraftStatus
 				} else {
 					Client.Log.Warning ("ServerAvailable", "No default channel found. This will prevent status updates until a user runs a command in a public channel. The first command will set the default.");
 				}
+
+				int serverCount = Client.Servers.Count ();
+
+				Console.WriteLine ("Logged into Discord under bot username {0}.", Client.CurrentUser.Name);
+				Console.WriteLine ("Listening for commands on {0} server{1}.", serverCount, serverCount == 1 ? string.Empty : "s");
 			};
 
 //			Client.MessageReceived += (object sender, MessageEventArgs e) => {
 //				Console.WriteLine ("Received message in channel {0} from {1}: {2}", e.Channel.Name, e.User.Name, e.Message.Text);
 //			};
 
-			StatusCheckTimer = new System.Threading.Timer (OnStatusTimer, null, TimeSpan.FromMinutes (1), TimeSpan.FromTicks (Delay.Ticks * 2));
+			// Large delay because we're going to perform lots of requests each time - one per server
+			StatusCheckTimer = new System.Threading.Timer (OnStatusTimer, null, TimeSpan.FromMinutes (1), TimeSpan.FromTicks (Delay.Ticks * 5));
 
 			ulong adminIDNum = UInt64.Parse (adminId);
 
@@ -239,7 +323,7 @@ namespace DiscordBotCheckMinecraftStatus
 					.Do (CheckServerStatus);
 
 			service.CreateCommand ("alert")
-					.PublicOnly().UseGlobalBlacklist ()
+					.PublicOnly ().UseGlobalBlacklist ()
 					.Alias ("subscribe", "notify")
 					.Description ("Notifies the invoker upon the next status check where the Minecraft server is online.")
 					.Do (async (arg) => {
@@ -447,35 +531,23 @@ namespace DiscordBotCheckMinecraftStatus
 			}
 		}
 
-		public string MinecraftAddress;
-		public short MinecraftPort = 25565;
-		public TimeSpan Delay = TimeSpan.FromSeconds (60);
-		public ulong? ServerID;
-
 		/// <summary>
-		/// The default channel, used for timed status checks.
+		/// The delay between Minecraft requests. Constant across all server instances.
 		/// </summary>
-		public Channel DefaultChannel = null;
+		public TimeSpan Delay = TimeSpan.FromSeconds (60);
 
-		private List<User> NotifyOnUptime = new List<User> ();
-		private bool lastPingSuccess = true;
 		private System.Threading.Timer StatusCheckTimer;
 
 		private IMinecraftStatusProvider ServerStatus;
 
 		private void OnStatusTimer (object userState)
 		{
-			Client.Log.Debug ("StatusTimer", "StatusTimer hit, checking conditions for additional server ping.");
+			Client.Log.Debug ("StatusTimer", "StatusTimer hit, checking conditions for additional server pings.");
 
 			if (lastPingSuccess) {
 				// Don't ping for failure knowing we've succeeded
 				// Although this is potentially useful, subscriptions only exist at the moment for downtime transitioning to uptime
 				// No alerts exist for the other way around
-				return;
-			}
-
-			if (DefaultChannel == null) {
-				// Not much we can do
 				return;
 			}
 
@@ -721,9 +793,6 @@ namespace DiscordBotCheckMinecraftStatus
 		//		{
 		//			return Dns.GetHostEntry (arg).AddressList.FirstOrDefault (item => item.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
 		//		}
-
-
-		protected DateTime LastPing = DateTime.MinValue;
 
 		//		private string ProcessAdminMessage (Message message)
 		//		{

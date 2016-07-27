@@ -222,14 +222,78 @@ namespace DiscordBotCheckMinecraftStatus
 				}
 			});
 
+			service.CreateGroup ("cooldown", ccgb => {
+				ccgb.UseGlobalWhitelist ().CreateCommand ("status")
+					.Alias ("check", "get")
+					.Description ("Returns the current cooldown status.")
+					.Do (async (arg) => {
+						LogAdminCommand (arg);
+
+						if (ServerID.HasValue && arg.Server != null && arg.Server.Id != ServerID) {
+							// Not our server
+							return;
+						}
+
+						TimeSpan cooldownRemaining = Delay - (DateTime.Now - LastPing);
+						if (cooldownRemaining < TimeSpan.Zero) {
+							await arg.Channel.SendMessage ($"The cooldown of {Delay.TotalSeconds} seconds is elapsed, you do not need to wait before pinging the server.");
+						} else {
+							double cooldownInSeconds = cooldownRemaining.TotalSeconds;
+							cooldownInSeconds *= 100;
+							cooldownInSeconds = (int)cooldownInSeconds;
+							cooldownInSeconds /= 100;
+
+							await arg.Channel.SendMessage (string.Format ("There are {0} seconds remaining on the total cooldown of {1} seconds.", cooldownInSeconds, Delay.TotalSeconds));
+						}
+					});
+
+				ccgb.UseGlobalWhitelist ().CreateCommand ("reset")
+					.Description ("Resets the cooldown.")
+					.Do (async (arg) => {
+
+						LogAdminCommand (arg);
+
+						if (ServerID.HasValue && arg.Server != null && arg.Server.Id != ServerID) {
+							// Not our server
+							return;
+						}
+
+						if (LastPing == DateTime.MaxValue) {
+							LastPing = DateTime.MinValue;
+							await arg.Channel.SendMessage ("Server pings enabled.");
+						} else {
+							LastPing = DateTime.MinValue;
+							await arg.Channel.SendMessage ("Cooldown reset.");
+						}
+
+					});
+
+				ccgb.UseGlobalWhitelist ().CreateCommand ("set")
+					.Parameter ("cooldown", ParameterType.Required) 
+					.Description ("Sets the cooldown in between invocations in milliseconds.")
+					.Do (async (arg) => {
+
+						LogAdminCommand (arg);
+
+						int cooldownMs;
+						if (!int.TryParse (arg.Args [0], out cooldownMs)) {
+							await arg.Channel.SendMessage ("Error parsing cooldown.");
+							return;
+						}
+
+						Delay = TimeSpan.FromMilliseconds (cooldownMs);
+						await arg.Channel.SendMessage (string.Format ("Cooldown set to {0} seconds.", Delay.TotalSeconds));
+					});
+			});
+
 			service.CreateGroup ("admin", cgb => {
-				cgb.UseGlobalWhitelist ().CreateCommand ("hello")
-					.Alias ("helloworld", "ping")
+				cgb.UseGlobalWhitelist ().CreateCommand ("ping")
+					.Alias ("hello")
 					.Description ("Pings the bot.")
 					.Do (async (arg) => {
 					LogAdminCommand (arg);
 
-					await arg.Channel.SendMessage ("Hello world!");
+					await arg.Channel.SendMessage ("Pong!");
 				});
 
 				cgb.UseGlobalWhitelist ().CreateCommand ("shutdown")
@@ -278,70 +342,6 @@ namespace DiscordBotCheckMinecraftStatus
 						}
 
 						await arg.Channel.SendMessage (string.Format ("The default channel is #{0}.", DefaultChannel.Name, DefaultChannel.Server.Name));
-					});
-				});
-
-				cgb.CreateGroup ("cooldown", ccgb => {
-					ccgb.UseGlobalWhitelist ().CreateCommand ("status")
-						.Alias ("check")
-						.Description ("Returns the current cooldown status.")
-						.Do (async (arg) => {
-						LogAdminCommand (arg);
-
-						if (ServerID.HasValue && arg.Server != null && arg.Server.Id != ServerID) {
-							// Not our server
-							return;
-						}
-
-						TimeSpan cooldownRemaining = Delay - (DateTime.Now - LastPing);
-						if (cooldownRemaining < TimeSpan.Zero) {
-							await arg.Channel.SendMessage ($"The cooldown of {Delay.TotalSeconds} seconds is elapsed, you do not need to wait before pinging the server.");
-						} else {
-							double cooldownInSeconds = cooldownRemaining.TotalSeconds;
-							cooldownInSeconds *= 100;
-							cooldownInSeconds = (int)cooldownInSeconds;
-							cooldownInSeconds /= 100;
-
-							await arg.Channel.SendMessage (string.Format ("There are {0} seconds remaining on the total cooldown of {1} seconds.", cooldownInSeconds, Delay.TotalSeconds));
-						}
-					});
-
-					ccgb.UseGlobalWhitelist ().CreateCommand ("reset")
-						.Description ("Resets the cooldown.")
-						.Do (async (arg) => {
-
-						LogAdminCommand (arg);
-
-						if (ServerID.HasValue && arg.Server != null && arg.Server.Id != ServerID) {
-							// Not our server
-							return;
-						}
-
-						if (LastPing == DateTime.MaxValue) {
-							LastPing = DateTime.MinValue;
-							await arg.Channel.SendMessage ("Server pings enabled.");
-						} else {
-							LastPing = DateTime.MinValue;
-							await arg.Channel.SendMessage ("Cooldown reset.");
-						}
-						
-					});
-
-					ccgb.UseGlobalWhitelist ().CreateCommand ("set")
-						.Parameter ("cooldown", ParameterType.Required) 
-						.Description ("Sets the cooldown in between invocations in milliseconds.")
-						.Do (async (arg) => {
-
-						LogAdminCommand (arg);
-
-						int cooldownMs;
-						if (!int.TryParse (arg.Args [0], out cooldownMs)) {
-							await arg.Channel.SendMessage ("Error parsing cooldown.");
-							return;
-						}
-
-						Delay = TimeSpan.FromMilliseconds (cooldownMs);
-						await arg.Channel.SendMessage (string.Format ("Cooldown set to {0} seconds.", Delay.TotalSeconds));
 					});
 				});
 

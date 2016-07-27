@@ -8,9 +8,9 @@ using Discord.Logging;
 
 namespace DiscordBotCheckMinecraftStatus
 {
-	public class MinecraftStatusChecker : IMinecraftStatusProvider
+	public class MCApiStatusChecker : IMinecraftStatusProvider
 	{
-		public MinecraftStatusChecker (LogManager log)
+		public MCApiStatusChecker (LogManager log)
 		{
 			Log = Log;
 		}
@@ -38,7 +38,7 @@ namespace DiscordBotCheckMinecraftStatus
 				}
 
 				if ((string)json ["status"] != "success") {
-					Log.Warning ("MCApi.us Backend", "Backend returned abnormal status code '"+((string)json["status"]) + ",' result may be erroneous.", ex);
+					Log.Warning ("MCApi.us Backend", "Backend returned abnormal status code '"+((string)json["status"]) + ",' result may be erroneous.");
 					return null;
 				}
 

@@ -229,6 +229,7 @@ namespace DiscordBotCheckMinecraftStatus
 			// May use for abuse prevention
 			Client.AddService (new BlacklistService ());
 
+			ServerStatus = new MCApiStatusChecker (Client.Log);
 
 			// Since we have prefix-only invocations, these are not ambiguous
 			service.CreateCommand ("status")
@@ -460,7 +461,7 @@ namespace DiscordBotCheckMinecraftStatus
 		private bool lastPingSuccess = true;
 		private System.Threading.Timer StatusCheckTimer;
 
-		private IMinecraftStatusProvider ServerStatus = MinecraftStatusChecker.Instance;
+		private IMinecraftStatusProvider ServerStatus;
 
 		private void OnStatusTimer (object userState)
 		{

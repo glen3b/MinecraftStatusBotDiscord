@@ -63,6 +63,7 @@
     <Compile Include="IServerStatus.cs" />
     <Compile Include="IMinecraftStatusProvider.cs" />
     <Compile Include="Backend\MCApiStatusChecker.cs" />
+    <Compile Include="IServerResolver.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

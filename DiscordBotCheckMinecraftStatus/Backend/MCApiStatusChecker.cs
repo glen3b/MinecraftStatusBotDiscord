@@ -12,7 +12,7 @@ namespace DiscordBotCheckMinecraftStatus
 	{
 		public MCApiStatusChecker (LogManager log)
 		{
-			Log = Log;
+			Log = log;
 		}
 
 		private string Endpoint = "http://mcapi.us/server/status";
@@ -46,7 +46,7 @@ namespace DiscordBotCheckMinecraftStatus
 					return null;
 				}
 
-				ServerStatus status = new ServerStatus ();
+				MCApiServerStatus status = new MCApiServerStatus ();
 
 				if (!(bool)json ["online"]) {
 					status.OnlinePlayerCount = -1;
@@ -65,11 +65,11 @@ namespace DiscordBotCheckMinecraftStatus
 		}
 
 		/// <summary>
-		/// A server status implementation without a player sample. Sets not exposed through interface.
+		/// A server status implementation without a player sample. Setters not exposed through interface, they should only be set here.
 		/// </summary>
-		class ServerStatus : IServerStatus
+		class MCApiServerStatus : IServerStatus
 		{
-			public ServerStatus ()
+			public MCApiServerStatus ()
 			{
 				PlayerSample = System.Linq.Enumerable.Empty<string> ();
 			}
@@ -85,13 +85,18 @@ namespace DiscordBotCheckMinecraftStatus
 			}
 
 			/// <summary>
-			/// Not implemented.
+			/// Not implemented: this backend does not implement this property.
 			/// </summary>
 			/// <value>The player sample.</value>
 			public IEnumerable<string> PlayerSample {
 				get;
 				set;
 			}
+		}
+
+		public async Task<IServerStatus> GetStatus (IMinecraftServer server)
+		{
+			return GetStatus (server.Hostname, server.Port);
 		}
 	}
 }

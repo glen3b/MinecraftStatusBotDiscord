@@ -239,7 +239,7 @@ namespace DiscordBotCheckMinecraftStatus
 					.Do (CheckServerStatus);
 
 			service.CreateCommand ("alert")
-					.UseGlobalBlacklist ()
+					.PublicOnly().UseGlobalBlacklist ()
 					.Alias ("subscribe", "notify")
 					.Description ("Notifies the invoker upon the next status check where the Minecraft server is online.")
 					.Do (async (arg) => {

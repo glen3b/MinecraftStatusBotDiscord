@@ -38,8 +38,10 @@ namespace DiscordBotCheckMinecraftStatus
 				EndProgram (main, out isRunning);	
 			};
 
+			main.Client.Log.Message += LogMessage;
+
 			while (isRunning) {
-				var consoleInput = Console.ReadLine ().ToLower().Split(' ');
+				var consoleInput = Console.ReadLine ().ToLower ().Split (' ');
 
 				switch (consoleInput [0]) {
 				case "help":
@@ -48,7 +50,7 @@ namespace DiscordBotCheckMinecraftStatus
 					Console.WriteLine ("Help: Returns a console admin manual.");
 					Console.WriteLine ("Stop/Die: Terminates the bot.");
 					Console.WriteLine ("LockWeb/BlockPM: Blocks admins from using the private message interface to communicate with the bot.");
-					Console.WriteLine ("Logs <On|Off> [LogLevel]: Enables or disables verbose console logging. Defaults to off.");
+					Console.WriteLine ("Logs <On|Off> [LogLevel]: Enables or disables verbose console logging. Defaults to on.");
 					break;
 				case "stop":
 				case "die":
@@ -103,7 +105,8 @@ namespace DiscordBotCheckMinecraftStatus
 
 		private static LogSeverity _logLevel = LogSeverity.Info;
 
-		private static void LogMessage(object sender, LogMessageEventArgs args){
+		private static void LogMessage (object sender, LogMessageEventArgs args)
+		{
 			if (args.Severity < _logLevel) {
 				return;
 			}
@@ -122,7 +125,7 @@ namespace DiscordBotCheckMinecraftStatus
 		{
 			Client = new DiscordClient ();
 			Client.Ready += (object sender, EventArgs e) => {
-				Console.WriteLine ("Signed into Discord under bot username {0}", Client.CurrentUser.Name);
+				Client.Log.Info ("OnReady", "Signed into Discord under bot username " + Client.CurrentUser.Name);
 
 				// TODO check: If done right, returns null UNLESS a textchannel by the name of general can be found in the specified serve
 				DefaultChannel = ServerID.HasValue ? Client.GetServer (ServerID.Value)?.FindChannels ("general", ChannelType.Text)?.FirstOrDefault () : null;
@@ -132,9 +135,9 @@ namespace DiscordBotCheckMinecraftStatus
 				}
 
 				if (DefaultChannel != null) {
-					Console.WriteLine ("Using channel #{0} as the main channel.", DefaultChannel.Name);
+					Client.Log.Verbose ("OnReady", string.Format ("Using channel #{0} as the main channel.", DefaultChannel.Name));
 				} else {
-					Console.WriteLine ("No default channel found. This will prevent status updates until a user runs a command in a public channel.");
+					Client.Log.Info ("OnReady", "No default channel found. This will prevent status updates until a user runs a command in a public channel.");
 				}
 
 			};
@@ -207,8 +210,7 @@ namespace DiscordBotCheckMinecraftStatus
 					.Do (async (arg) => {
 					// No need to log, there's already a dedicated log
 
-					await arg.Channel.SendMessage ("Shutting down :(");
-					Console.WriteLine ("Received shutdown command from {0}.", arg.User.Name);
+					Client.Log.Warning ("BotAdmin Chat Interface", string.Format ("Received shutdown command from {0}.", arg.User.Name));
 					await Client.Disconnect ();
 					Client.Dispose ();
 				});
@@ -360,7 +362,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 		private void LogAdminCommand (CommandEventArgs cmd)
 		{
-			Console.WriteLine ("Received admin command '{0}' from '{1}'", cmd.Message.Text, cmd.User.Name);
+			Client.Log.Verbose ("BotAdmin Chat Interface", string.Format ("Received admin command '{0}' from '{1}'", cmd.Message.Text, cmd.User.Name));
 		}
 
 		private void SetDefaultIfNeeded (CommandEventArgs arg)
@@ -369,7 +371,7 @@ namespace DiscordBotCheckMinecraftStatus
 			// Set the default channel, if not already set, to the first non-private channel a status command is received from
 			if (DefaultChannel == null && arg.Server != null) {
 				DefaultChannel = arg.Channel;
-				Console.WriteLine ("Default channel set to #{0}.", DefaultChannel.Name);
+				Client.Log.Info ("Chat", string.Format ("Default channel set to #{0}.", DefaultChannel.Name));
 			}
 		}
 
@@ -391,6 +393,8 @@ namespace DiscordBotCheckMinecraftStatus
 
 		private void OnStatusTimer (object userState)
 		{
+			Client.Log.Debug ("StatusTimer", "StatusTimer hit, checking conditions for additional server ping.");
+
 			if (lastPingSuccess) {
 				// Don't ping for failure knowing we've succeeded
 				// Although this is potentially useful, subscriptions only exist at the moment for downtime transitioning to uptime
@@ -405,29 +409,30 @@ namespace DiscordBotCheckMinecraftStatus
 
 			// Do a quiet status check to potentially alert if there is new success
 			try {
+				Client.Log.Debug ("StatusTimer", "Performing 'quiet' server ping");
 				CheckServerStatus (DefaultChannel, null);
 			} catch {
 				// Ignore
 			}
 		}
 
-		protected async Task<TResult> TaskWithTimeout<TResult> (Task<TResult> longRunning, TResult defaultValue, int timeout = 5000)
-		{
-			
-			if (await Task.WhenAny (longRunning, Task.Delay (timeout)) == longRunning) {
-				// task completed within timeout
-				try {
-					return await longRunning;
-				} catch {
-					// TODO less stupid way of doing this
-					return defaultValue;
-				}
-			} else { 
-				// timeout logic
-				// TODO cancel properly
-				return defaultValue;
-			}
-		}
+//		protected async Task<TResult> TaskWithTimeout<TResult> (Task<TResult> longRunning, TResult defaultValue, int timeout = 5000)
+//		{
+//			
+//			if (await Task.WhenAny (longRunning, Task.Delay (timeout)) == longRunning) {
+//				// task completed within timeout
+//				try {
+//					return await longRunning;
+//				} catch {
+//					// TODO less stupid way of doing this
+//					return defaultValue;
+//				}
+//			} else { 
+//				// timeout logic
+//				// TODO cancel properly
+//				return defaultValue;
+//			}
+//		}
 
 		// TODO alertOnFail param == null means no alert on fail, set to value means alert that user OR if applicable alert the channel the CMD was received in
 		// A wee bit of a hack
@@ -445,6 +450,8 @@ namespace DiscordBotCheckMinecraftStatus
 				return;
 			}
 
+			Client.Log.Debug ("CheckServerStatus", "Beginning server ping");
+
 			if (alertOnFail != null) {
 				await channel.SendIsTyping ();
 			}
@@ -460,10 +467,12 @@ namespace DiscordBotCheckMinecraftStatus
 
 					// TODO fix
 
-					servInfo = await ServerStatus.GetStatus(MinecraftAddress, MinecraftPort);
+					servInfo = await ServerStatus.GetStatus (MinecraftAddress, MinecraftPort);
 					//servInfo = await TaskWithTimeout (GetServerInfo (), ErrorServerInfo);
 				}
 			} catch {
+				Client.Log.Debug ("CheckServerStatus", "Server ping catch-all hit, defaulting to failure");
+
 				// Blanket catch all
 				ping = -1;
 				servInfo = null;
@@ -472,11 +481,17 @@ namespace DiscordBotCheckMinecraftStatus
 
 			if (ping == -1 || servInfo == null || servInfo.OnlinePlayerCount < 0) {
 				lastPingSuccess = false;
+
+				Client.Log.Verbose ("CheckServerStatus", "Server ping failed, informing channel");
+
 				if (alertOnFail != null) {
 					await channel.SendMessage ("I cannot reach the Minecraft server; it's probably offline. You can do __/minecraft alert__ to be alerted when the server shows up as online.");
 				}
 			} else {
 				lastPingSuccess = true;
+
+				Client.Log.Verbose ("CheckServerStatus", "Server ping succeeded, informing channel");
+
 				if (NotifyOnUptime.Count > 0) {
 					StringBuilder uptimeMsg = new StringBuilder ();
 
@@ -488,6 +503,8 @@ namespace DiscordBotCheckMinecraftStatus
 
 					NotifyOnUptime.Clear ();
 
+					Client.Log.Verbose ("CheckServerStatus", "Informing subscribed users of newfound server uptime");
+
 					await channel.SendMessage (uptimeMsg.ToString ());
 
 					// Still going to send another message
@@ -497,15 +514,17 @@ namespace DiscordBotCheckMinecraftStatus
 				StringBuilder onlineStatusMessage = new StringBuilder (
 					                                    string.Format
 					("The Minecraft server currently has **{0}** out of **{2}** player{1} online, and I can reach it with a ping of **{3} ms**.",
-						servInfo.OnlinePlayerCount, servInfo.MaxPlayerCount == 1 ? string.Empty : "s",
-						servInfo.MaxPlayerCount, ping,
+						                                    servInfo.OnlinePlayerCount, servInfo.MaxPlayerCount == 1 ? string.Empty : "s",
+						                                    servInfo.MaxPlayerCount, ping,
 						                                    MinecraftAddress, MinecraftPort == 25565 ? string.Empty : ':' + MinecraftPort.ToString ()));
-				if (servInfo.PlayerSample.Count() > 0) {
+				if (servInfo.PlayerSample.Count () > 0) {
+					
+					Client.Log.Debug ("CheckServerStatus", "Appending sample userlist of size " + servInfo.PlayerSample.Count() + " to message");
 
 					const string moreHumans = "others";
 
 					string[] players = servInfo.PlayerSample.Select ((p) => p).Union (
-						servInfo.OnlinePlayerCount > servInfo.PlayerSample.Count() && servInfo.PlayerSample.Count() > 0 ?
+						                   servInfo.OnlinePlayerCount > servInfo.PlayerSample.Count () && servInfo.PlayerSample.Count () > 0 ?
 						new string[] { moreHumans } : new string[0]).ToArray ();
 					
 
@@ -564,7 +583,7 @@ namespace DiscordBotCheckMinecraftStatus
 				}
 
 				// End markdown
-				onlineStatusMessage.Append("__");
+				onlineStatusMessage.Append ("__");
 
 				// FIXME Punctuation - yes or no?
 				onlineStatusMessage.Append ('.');
@@ -615,21 +634,21 @@ namespace DiscordBotCheckMinecraftStatus
 			);
 		}
 
-//		private IPEndPoint ParseMinecraftEndPoint ()
-//		{
-//			IPAddress address;
-//
-//			if (!IPAddress.TryParse (MinecraftAddress, out address)) {
-//				address = ResolveDNS (MinecraftAddress);
-//			}
-//
-//			return new IPEndPoint (address, MinecraftPort);
-//		}
-//
-//		private static IPAddress ResolveDNS (string arg)
-//		{
-//			return Dns.GetHostEntry (arg).AddressList.FirstOrDefault (item => item.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
-//		}
+		//		private IPEndPoint ParseMinecraftEndPoint ()
+		//		{
+		//			IPAddress address;
+		//
+		//			if (!IPAddress.TryParse (MinecraftAddress, out address)) {
+		//				address = ResolveDNS (MinecraftAddress);
+		//			}
+		//
+		//			return new IPEndPoint (address, MinecraftPort);
+		//		}
+		//
+		//		private static IPAddress ResolveDNS (string arg)
+		//		{
+		//			return Dns.GetHostEntry (arg).AddressList.FirstOrDefault (item => item.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+		//		}
 
 
 		protected DateTime LastPing = DateTime.MinValue;
@@ -678,6 +697,9 @@ namespace DiscordBotCheckMinecraftStatus
 
 		public void Terminate ()
 		{
+
+			Client.Log.Info ("Terminate", "Client connection terminating");
+
 			Client.Disconnect ();
 			Client.Dispose ();
 		}

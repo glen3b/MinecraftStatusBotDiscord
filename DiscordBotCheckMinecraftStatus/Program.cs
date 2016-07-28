@@ -73,7 +73,14 @@ namespace DiscordBotCheckMinecraftStatus
 					break;
 				case "getservers":
 				case "listservers":
-					Console.WriteLine ("Not implemented.");
+					if (main.Servers.Count > 0) {
+						Console.WriteLine ("This bot is registered to listen on the following {0} server{1}.", main.Servers.Count, main.Servers.Count == 1 ? string.Empty : "s");
+						foreach (var server in main.Servers) {
+							Console.WriteLine (server.DefaultChannel.Name);
+						}
+					} else {
+						Console.WriteLine ("This bot is not registered to listen on any servers.");
+					}
 					break;
 				case "stop":
 				case "die":

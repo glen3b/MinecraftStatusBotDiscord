@@ -570,9 +570,9 @@ namespace DiscordBotCheckMinecraftStatus
 		public void GetEffectiveServer (CommandEventArgs args, ref Server serverVar)
 		{
 			if (args.Server != null) {
-				UserCache [args.User] = args.Server;
+				UserCache [args.User.Id] = args.Server;
 				serverVar = args.Server;
-			} else if (!UserCache.TryGetValue (args.User, out serverVar)) {
+			} else if (!UserCache.TryGetValue (args.User.Id, out serverVar)) {
 				// If TryGetValue succeeds it will assign to the target variable, which is what we wanted to do anyway
 				// Otherwise we're here, we'll just make sure it's null
 				serverVar = null;
@@ -580,7 +580,9 @@ namespace DiscordBotCheckMinecraftStatus
 		}
 
 		public IServerResolver Servers = new DictionaryServerResolver ();
-		public IDictionary<User, Server> UserCache = new Dictionary<User, Server> ();
+
+		// UID to server instance
+		public IDictionary<ulong, Server> UserCache = new Dictionary<ulong, Server> ();
 
 		private void LogAdminCommand (CommandEventArgs cmd)
 		{
@@ -813,7 +815,7 @@ namespace DiscordBotCheckMinecraftStatus
 		{
 			Server dummy = null;
 
-			// Set cache if needed, but public command means we don't need this
+			// Set cache if needed, but public command means we don't need the output
 			GetEffectiveServer (args, ref dummy);
 
 			if (Servers [dummy] == null) {

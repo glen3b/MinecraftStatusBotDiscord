@@ -11,19 +11,19 @@ namespace DiscordBotCheckMinecraftStatus
 
 		public void AddServer (Discord.Server voice, IMinecraftServer minecraft)
 		{
-			if (_data.ContainsKey (voice)) {
+			if (_data.ContainsKey (voice.Id)) {
 				throw new InvalidOperationException ("This resolver already contains the specified server.");
 			}
 
-			_data.Add (voice, new BasicServerInformation (Program.GetDefaultChannel (voice), minecraft));
+			_data.Add (voice.Id, new BasicServerInformation (Program.GetDefaultChannel (voice), minecraft));
 		}
 
-		IDictionary<Discord.Server, BasicServerInformation> _data = new Dictionary<Discord.Server, BasicServerInformation>();
+		IDictionary<ulong, BasicServerInformation> _data = new Dictionary<ulong, BasicServerInformation>();
 
 		public IServerInformation this [Discord.Server voice] {
 			get {
 				BasicServerInformation info = null;
-				if (!_data.TryGetValue (voice, out info)) {
+				if (!_data.TryGetValue (voice.Id, out info)) {
 					return null;
 				}
 

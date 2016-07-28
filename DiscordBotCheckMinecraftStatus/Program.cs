@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Net;
+using System.Threading;
 
 namespace DiscordBotCheckMinecraftStatus
 {
@@ -25,6 +26,54 @@ namespace DiscordBotCheckMinecraftStatus
 			}
 
 			return sb.ToString ();
+		}
+	}
+
+	class Reader
+	{
+		private static Thread inputThread;
+		private static EventWaitHandle getInput, gotInput;
+		private static string input;
+		private static volatile bool success;
+
+		static Reader ()
+		{
+			getInput = new AutoResetEvent (false);
+			gotInput = new AutoResetEvent (false);
+			inputThread = new Thread (reader);
+			inputThread.IsBackground = true;
+			inputThread.Start ();
+		}
+
+		public static void Cancel ()
+		{
+			lock (gotInput) {
+				success = false;
+				gotInput.Set ();
+			}
+		}
+
+		private static void reader ()
+		{
+			while (true) {
+				getInput.WaitOne ();
+				input = Console.ReadLine ();
+				lock (gotInput) {
+					success = true;
+					gotInput.Set ();
+				}
+			}
+		}
+
+		public static string ReadLine ()
+		{
+			getInput.Set ();
+			gotInput.WaitOne ();
+			if (success) {
+				return input;
+			} else {
+				throw new TaskCanceledException ("ReadLine canceled.");
+			}
 		}
 	}
 
@@ -63,6 +112,8 @@ namespace DiscordBotCheckMinecraftStatus
 				Console.WriteLine ("Disconnecting bot...");
 				isRunning = false;
 				main.Terminate ();
+
+				Reader.Cancel();
 			};
 
 			Console.CancelKeyPress += EndPrgm;
@@ -70,7 +121,13 @@ namespace DiscordBotCheckMinecraftStatus
 			main.Client.Log.Message += LogMessage;
 
 			while (isRunning) {
-				var consoleInput = Console.ReadLine ().Split (' ');
+				string[] consoleInput = null;
+				try {
+					consoleInput = Reader.ReadLine ().Split (' ');
+				} catch (TaskCanceledException) {
+					// Probably isRunning is false
+					continue;
+				}
 
 				switch (consoleInput [0].ToLower ()) {
 				case "help":
@@ -87,11 +144,23 @@ namespace DiscordBotCheckMinecraftStatus
 				case "getservers":
 				case "listservers":
 					if (main.Servers.Count > 0) {
-						Console.WriteLine ("This bot is registered to listen on the following {0} server{1}.", main.Servers.Count, main.Servers.Count == 1 ? string.Empty : "s");
+
+						int servCt = main.Servers.Count;
+
+						Console.WriteLine ("This bot is registered to listen on the following {0} server{1}.", servCt, servCt == 1 ? string.Empty : "s");
+
+						int i = 0;
+
 						foreach (var server in main.Servers) {
+							
 							Console.WriteLine ("Guild Name: '{0}'", server.DefaultChannel.Server.Name);
 							Console.WriteLine ("Default Channel: #{0}", server.DefaultChannel.Name);
 							Console.WriteLine ("Minecraft Address: '{0}'", server.Minecraft.GetAddressString ());
+
+							if (i++ != servCt - 1) {
+								Console.WriteLine ();
+							}
+
 						}
 					} else {
 						Console.WriteLine ("This bot is not registered to listen on any servers.");

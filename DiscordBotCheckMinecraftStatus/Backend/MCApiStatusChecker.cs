@@ -19,7 +19,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 		private LogManager Log;
 
-		public async Task<IServerStatus> GetStatus (string hostname, short port = 25565)
+		public async Task<IMinecraftServerStatus> GetStatus (string hostname, short port = 25565)
 		{
 			try {
 				UriBuilder target = new UriBuilder (Endpoint);
@@ -67,7 +67,7 @@ namespace DiscordBotCheckMinecraftStatus
 		/// <summary>
 		/// A server status implementation without a player sample. Setters not exposed through interface, they should only be set here.
 		/// </summary>
-		class MCApiServerStatus : IServerStatus
+		class MCApiServerStatus : IMinecraftServerStatus
 		{
 			public MCApiServerStatus ()
 			{
@@ -94,7 +94,7 @@ namespace DiscordBotCheckMinecraftStatus
 			}
 		}
 
-		public async Task<IServerStatus> GetStatus (IMinecraftServer server)
+		public async Task<IMinecraftServerStatus> GetStatus (IMinecraftServer server)
 		{
 			return GetStatus (server.Hostname, server.Port);
 		}

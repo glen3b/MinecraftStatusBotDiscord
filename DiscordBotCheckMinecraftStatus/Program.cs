@@ -34,7 +34,14 @@ namespace DiscordBotCheckMinecraftStatus
 				Enum.TryParse<LogSeverity> (ConfigurationManager.AppSettings ["LogLevel"], true, out _logLevel);
 			}
 
-			Program main = new Program (ConfigurationManager.AppSettings ["AdminUserID"], ConfigurationManager.AppSettings ["MinecraftAddress"], ConfigurationManager.AppSettings ["ServerID"]);
+			ulong defaultAdmin;
+
+			if (!ulong.TryParse (ConfigurationManager.AppSettings ["AdminUserID"], out defaultAdmin)) {
+				Console.WriteLine ("Error parsing admin user ID.");
+				return;
+			}
+
+			Program main = new Program (defaultAdmin, ConfigurationManager.AppSettings);
 			main.Execute (ConfigurationManager.AppSettings ["BotToken"]);
 
 			bool isRunning = true;
@@ -216,7 +223,7 @@ namespace DiscordBotCheckMinecraftStatus
 						break;
 					}
 
-					// TODO find default channel and send message
+					// FIXME TODO find default channel and send message
 
 					if (main.DefaultChannel == null) {
 						Console.WriteLine ("Default channel not defined.");
@@ -236,6 +243,21 @@ namespace DiscordBotCheckMinecraftStatus
 			System.Threading.Thread.Sleep (1000);
 		}
 
+		public static Channel GetDefaultChannel(Server server){
+			Channel defaultChan = server.FindChannels ("general", ChannelType.Text)?.FirstOrDefault ();
+			if (defaultChan == null) {
+				// If there's no general channel, go for a Minecraft channel
+				defaultChan = server.FindChannels ("minecraft", ChannelType.Text)?.FirstOrDefault ();
+			}
+
+			if (defaultChan != null) {
+				return defaultChan;
+			}
+
+			// TODO manually specify default channels
+			throw new ArgumentException("The specified server does not have a valid default channel.");
+		}
+
 		private static bool _printLogs = true;
 		private static LogSeverity _logLevel = LogSeverity.Warning;
 
@@ -249,7 +271,7 @@ namespace DiscordBotCheckMinecraftStatus
 			Console.WriteLine ("[{0} / {1}] {2}", args.Source, args.Severity, args.Message);
 		}
 
-		public Program (string adminId, string minecraftAddress, string serverId)
+		public Program (ulong adminId, System.Collections.Specialized.NameValueCollection appCfg)
 		{
 			Client = new DiscordClient ();
 			Client.Ready += (object sender, EventArgs e) => {
@@ -257,20 +279,28 @@ namespace DiscordBotCheckMinecraftStatus
 			};
 
 			Client.ServerAvailable += (object sender, ServerEventArgs e) => {
+
 				// TODO check: If done right, returns null UNLESS a textchannel by the name of general can be found in the specified serve
-				DefaultChannel = ServerID.HasValue ? Client.GetServer (ServerID.Value)?.FindChannels ("general", ChannelType.Text)?.FirstOrDefault () : null;
-				if (DefaultChannel == null) {
-					// If there's no general channel, go for a Minecraft channel
-					DefaultChannel = ServerID.HasValue ? Client.GetServer (ServerID.Value)?.FindChannels ("minecraft", ChannelType.Text, exactMatch: true)?.FirstOrDefault () : null;
+				DictionaryServerResolver resolv = new DictionaryServerResolver();
+
+				// TODO this config reading is a bit of a workaround
+
+				// While we can, parse for servers
+				// The catch will tell us when we hit an error or run out of servers to parse
+				// FIXME this is a hack, from the parse to the blanket catch
+				// Add more specific error messages for potentially stupid user errors
+				try{
+					for(int i = 1; true; i++){
+						ulong servId = ulong.Parse(appCfg[i + ":ServerID"]);
+						string[] minecraftAddressParts = appCfg[i + ":MinecraftAddress"].Split(':');
+						IMinecraftServer servInfo = new BaseMinecraftServerInformation(minecraftAddressParts[0], minecraftAddressParts.Length > 1 ? short.Parse(minecraftAddressParts[1]) : 25565);
+						resolv.AddServer(Client.GetServer(servId), servInfo);
+					}
+				}catch{
+
 				}
 
-				if (DefaultChannel != null) {
-					Client.Log.Info ("ServerAvailable", string.Format ("Using channel #{0} as the main/default channel.", DefaultChannel.Name));
-				} else {
-					Client.Log.Warning ("ServerAvailable", "No default channel found. This will prevent status updates until a user runs a command in a public channel. The first command will set the default.");
-				}
-
-				int serverCount = Client.Servers.Count ();
+				int serverCount = resolv.Count;
 
 				Console.WriteLine ("Logged into Discord under bot username {0}.", Client.CurrentUser.Name);
 				Console.WriteLine ("Listening for commands on {0} server{1}.", serverCount, serverCount == 1 ? string.Empty : "s");
@@ -283,11 +313,7 @@ namespace DiscordBotCheckMinecraftStatus
 			// Large delay because we're going to perform lots of requests each time - one per server
 			StatusCheckTimer = new System.Threading.Timer (OnStatusTimer, null, TimeSpan.FromMinutes (1), TimeSpan.FromTicks (Delay.Ticks * 5));
 
-			ulong adminIDNum = UInt64.Parse (adminId);
-
 			ulong servIDtmp = 0;
-
-			ServerID = String.IsNullOrWhiteSpace (serverId) ? null : (ulong.TryParse (serverId, out servIDtmp) ? (ulong?)servIDtmp : null);
 
 			CommandServiceConfigBuilder cfg = new CommandServiceConfigBuilder ();
 			cfg.AllowMentionPrefix = true;
@@ -305,7 +331,7 @@ namespace DiscordBotCheckMinecraftStatus
 			};
 
 			CommandService service = new CommandService (cfg);
-			WhitelistService admins = new WhitelistService (adminIDNum);
+			WhitelistService admins = new WhitelistService (adminId);
 
 			Client.AddService (service);
 			Client.AddService (admins);
@@ -472,49 +498,11 @@ namespace DiscordBotCheckMinecraftStatus
 						await arg.Channel.SendMessage (string.Format ("The default channel is #{0}.", DefaultChannel.Name, DefaultChannel.Server.Name));
 					});
 				});
-
-				// TODO no whitelisting - ANYONE can run
-				// TODO does not currently check for nonnull server var
-				// TODO implement
-//				cgb.CreateCommand ("block")
-//					.Parameter ("bantarget", ParameterType.Required)
-//					.Alias ("ban")
-//					.Description ("Bans a user from using the bot.")
-//					.Do (async (arg) => {
-//					ulong id;
-//
-//					var usersMatching = arg.Channel.Server.FindUsers (arg.Args [0]);
-//
-//					if (ulong.TryParse (arg.Args [0], out id)) {
-//						User byId = arg.Server.GetUser (id);
-//						usersMatching = byId == null ? new User[]{ } : new User[] { byId };
-//					}
-//
-//					int usrCount = usersMatching.Count ();
-//					if (usrCount == 0) {
-//						await arg.User.SendMessage ("No user by that name found.");
-//						await arg.Channel.SendMessage ("Error banning user.");
-//						return;
-//					} else if (usrCount > 1) {
-//						await arg.Channel.SendMessage ("Error banning user.");
-//						foreach (var usr in usersMatching) {
-//							await arg.User.SendMessage (string.Format ("Matching user in ban request: {0} with ID {1}", usr.Name, usr.Id));
-//						}
-//						return;
-//					} else {
-//						Client.BlacklistUser (usersMatching.First ().Id);
-//						await arg.Channel.SendMessage ("User banned from bot usage.");
-//						return;
-//					}
-//				});
 			});
-
-			string[] mcAddrComponents = minecraftAddress.Split (':');
-			MinecraftAddress = mcAddrComponents [0];
-			if (mcAddrComponents.Length > 1) {
-				MinecraftPort = short.Parse (mcAddrComponents [1]);
-			}
 		}
+
+		public IServerResolver Servers;
+		public IDictionary<User, Server> UserCache = new Dictionary<User, Server>();
 
 		private void LogAdminCommand (CommandEventArgs cmd)
 		{
@@ -603,7 +591,7 @@ namespace DiscordBotCheckMinecraftStatus
 			LastPing = DateTime.Now;
 
 			long ping = -1;
-			IServerStatus servInfo = null;
+			IMinecraftServerStatus servInfo = null;
 
 			try {
 				ping = await PingAddress (MinecraftAddress);

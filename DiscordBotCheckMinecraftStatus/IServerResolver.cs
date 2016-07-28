@@ -8,9 +8,7 @@ namespace DiscordBotCheckMinecraftStatus
 		/// <summary>
 		/// Gets information about the given guild that is specific to it.
 		/// If information is found it is expected to be returned quickly.
-		/// If no specific information exists for the given voice server, a blank value should be returned,
-		/// but its properties, specifically <code>Minecraft</code>, should be null.
-		/// The returned value is expected to be a reference to the original data, not a copy.
+		/// If no specific information exists for the given voice server, <code>null</code> should be returned.
 		/// </summary>
 		/// <param name="voice">The voice server for which the server information is requested.</param>
 		IServerInformation this [Discord.Server voice]{ get; }

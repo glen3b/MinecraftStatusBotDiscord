@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace DiscordBotCheckMinecraftStatus
 {
-	public interface IServerStatus
+	public interface IMinecraftServerStatus
 	{
 		int OnlinePlayerCount{ get; }
 

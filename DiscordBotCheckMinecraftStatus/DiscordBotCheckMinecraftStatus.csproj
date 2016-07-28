@@ -60,10 +60,11 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="IServerStatus.cs" />
     <Compile Include="IMinecraftStatusProvider.cs" />
     <Compile Include="Backend\MCApiStatusChecker.cs" />
     <Compile Include="IServerResolver.cs" />
+    <Compile Include="IMinecraftServerStatus.cs" />
+    <Compile Include="DictionaryServerResolver.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

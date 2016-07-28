@@ -96,7 +96,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 		public async Task<IMinecraftServerStatus> GetStatus (IMinecraftServer server)
 		{
-			return GetStatus (server.Hostname, server.Port);
+			return await GetStatus (server.Hostname, server.Port);
 		}
 	}
 }

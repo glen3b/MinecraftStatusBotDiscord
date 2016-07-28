@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace DiscordBotCheckMinecraftStatus
 {
-	public interface IServerResolver
+	public interface IServerResolver : IEnumerable<IServerInformation>
 	{
 		/// <summary>
 		/// Gets information about the given guild that is specific to it.

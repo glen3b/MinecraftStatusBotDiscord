@@ -22,7 +22,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 		public IServerInformation this [Discord.Server voice] {
 			get {
-				IServerInformation info = null;
+				BasicServerInformation info = null;
 				if (!_data.TryGetValue (voice, out info)) {
 					return null;
 				}
@@ -35,6 +35,16 @@ namespace DiscordBotCheckMinecraftStatus
 			get {
 				return _data.Count;
 			}
+		}
+
+		public IEnumerator<IServerInformation> GetEnumerator ()
+		{
+			return _data.Values.GetEnumerator ();
+		}
+
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator ()
+		{
+			return ((System.Collections.IEnumerable)_data.Values).GetEnumerator ();
 		}
 
 		class BasicServerInformation : IServerInformation{

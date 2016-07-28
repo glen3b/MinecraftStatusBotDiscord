@@ -431,7 +431,7 @@ namespace DiscordBotCheckMinecraftStatus
 				}
 
 				if (minecraftServer == null) {
-					Client.Log.Warning ("ServerAvailable", "No Minecraft server found for server '" + e.Server.Name + "'");
+					Client.Log.Warning ("ServerAvailable", "No Minecraft server found for guild '" + e.Server.Name + "'");
 					return;
 				}
 
@@ -544,14 +544,14 @@ namespace DiscordBotCheckMinecraftStatus
 
 					TimeSpan cooldownRemaining = Delay - (DateTime.Now - info.LastPing);
 					if (cooldownRemaining < TimeSpan.Zero) {
-						await arg.Channel.SendMessage ($"{effectiveServer.Name}'s {Delay.TotalSeconds} second cooldown has elapsed; you do not need to wait before pinging its gameserver.");
+						await arg.Channel.SendMessage ($"{effectiveServer.Name}'s {Delay.TotalSeconds} second ping cooldown has elapsed; you do not need to wait before pinging its gameserver.");
 					} else {
 						double cooldownInSeconds = cooldownRemaining.TotalSeconds;
 						cooldownInSeconds *= 100;
 						cooldownInSeconds = (int)cooldownInSeconds;
 						cooldownInSeconds /= 100;
 
-						await arg.Channel.SendMessage (string.Format ("There are {0} seconds remaining on {2}'s cooldown of {1} seconds.", cooldownInSeconds, Delay.TotalSeconds, effectiveServer.Name));
+						await arg.Channel.SendMessage (string.Format ("There are {0} seconds remaining on {2}'s ping cooldown of {1} seconds.", cooldownInSeconds, Delay.TotalSeconds, effectiveServer.Name));
 					}
 				});
 

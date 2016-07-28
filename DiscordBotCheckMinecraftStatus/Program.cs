@@ -89,7 +89,9 @@ namespace DiscordBotCheckMinecraftStatus
 					if (main.Servers.Count > 0) {
 						Console.WriteLine ("This bot is registered to listen on the following {0} server{1}.", main.Servers.Count, main.Servers.Count == 1 ? string.Empty : "s");
 						foreach (var server in main.Servers) {
-							Console.WriteLine (server.DefaultChannel.Name);
+							Console.WriteLine ("Guild Name: '{0}'", server.DefaultChannel.Server.Name);
+							Console.WriteLine ("Default Channel: #{0}", server.DefaultChannel.Name);
+							Console.WriteLine ("Minecraft Address: '{0}'", server.Minecraft.GetAddressString ());
 						}
 					} else {
 						Console.WriteLine ("This bot is not registered to listen on any servers.");
@@ -810,7 +812,7 @@ namespace DiscordBotCheckMinecraftStatus
 				// Markdown underline
 				onlineStatusMessage.Append ("__");
 
-				onlineStatusMessage.Append (voiceServInfo.Minecraft.GetAddressString());
+				onlineStatusMessage.Append (voiceServInfo.Minecraft.GetAddressString ());
 
 				// End markdown
 				onlineStatusMessage.Append ("__");

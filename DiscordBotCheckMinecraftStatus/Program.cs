@@ -408,25 +408,28 @@ namespace DiscordBotCheckMinecraftStatus
 
 				IServerInformation servData = Servers [serv];
 				if (servData == null) {
-					await arg.User.SendMessage ("The server you're subscribing to doesn't have an associated Minecraft server.");
+					await arg.User.SendMessage (serv.Name + " doesn't have an associated Minecraft server.");
 				} else if (!servData.Minecraft.LastPingSucceeded.HasValue) {
 					await arg.User.SendMessage ("Please ping the Minecraft server at least once in a public channel before subscribing to its status.");
 				} else if (servData.Minecraft.LastPingSucceeded.HasValue && servData.Minecraft.LastPingSucceeded.Value) {
-					await arg.User.SendMessage ("The server was up when last checked; you cannot currently subscribe to downtime.");
+					await arg.User.SendMessage (serv.Name + "'s gameserver was up when last checked; you cannot currently subscribe to downtime.");
 				} else if (servData.UptimeSubscribers.Contains (arg.User)) {
-					await arg.User.SendMessage ("You are already subscribed to the next uptime notification.");
+						await arg.User.SendMessage ("You are already subscribed to the next uptime notification for __"
+							+ servData.Minecraft.Hostname + (servData.Minecraft.Port == 25565 ? string.Empty : servData.Minecraft.Port.ToString()) + "__.");
 				} else {
 					servData.UptimeSubscribers.Add (arg.User);
-					await arg.User.SendMessage ("You will be notified when the server comes back online.");
+					await arg.User.SendMessage (string.Format ("You will be notified when {0}{1} comes back online.",
+						servData.Minecraft.Hostname, servData.Minecraft.Port == 25565 ? string.Empty : ':' + servData.Minecraft.Port.ToString ()));
 				}
 			});
 
 			service.CreateGroup ("cooldown", ccgb => {
 				ccgb.CreateCommand ("status")
+					.PrivateOnly ()
 					.Alias ("check", "get")
-					.Description ("Returns the current cooldown status.")
+					.Description ("Returns the current cooldown status for your most recently queried server.")
 					.Do (async (arg) => {
-					LogAdminCommand (arg);
+					//LogAdminCommand (arg);
 
 					Server effectiveServer = null;
 					GetEffectiveServer (arg, ref effectiveServer);
@@ -434,7 +437,7 @@ namespace DiscordBotCheckMinecraftStatus
 					if (effectiveServer == null) {
 						// arg.Server == null is true
 						// So it doesnt matter if we send to channel or user
-						await arg.Channel.SendMessage ("I don't know which server you're querying.");
+						await arg.Channel.SendMessage ("I don't know which server you're querying, but the cooldown between pings is " + Delay.TotalSeconds + " seconds.");
 						await arg.Channel.SendMessage ("Please run one of my commands in a public channel so I know which server you care about.");
 						return;
 					}
@@ -448,18 +451,19 @@ namespace DiscordBotCheckMinecraftStatus
 
 					TimeSpan cooldownRemaining = Delay - (DateTime.Now - info.LastPing);
 					if (cooldownRemaining < TimeSpan.Zero) {
-						await arg.Channel.SendMessage ($"The cooldown of {Delay.TotalSeconds} seconds is elapsed, you do not need to wait before pinging the server.");
+						await arg.Channel.SendMessage ($"{effectiveServer.Name}'s {Delay.TotalSeconds} second cooldown has elapsed; you do not need to wait before pinging its gameserver.");
 					} else {
 						double cooldownInSeconds = cooldownRemaining.TotalSeconds;
 						cooldownInSeconds *= 100;
 						cooldownInSeconds = (int)cooldownInSeconds;
 						cooldownInSeconds /= 100;
 
-						await arg.Channel.SendMessage (string.Format ("There are {0} seconds remaining on the total cooldown of {1} seconds.", cooldownInSeconds, Delay.TotalSeconds));
+						await arg.Channel.SendMessage (string.Format ("There are {0} seconds remaining on {2}'s cooldown of {1} seconds.", cooldownInSeconds, Delay.TotalSeconds, effectiveServer.Name));
 					}
 				});
 
 				ccgb.CreateCommand ("reset")
+					.UseGlobalWhitelist ()
 					.Description ("Resets the cooldown.")
 					.Do (async (arg) => {
 
@@ -484,9 +488,9 @@ namespace DiscordBotCheckMinecraftStatus
 					}
 
 					if (info.LastPing == DateTime.MaxValue) {
-						await arg.Channel.SendMessage ("Server pings enabled.");
+						await arg.Channel.SendMessage ("Server pings enabled for " + effectiveServer.Name + ".");
 					} else {
-						await arg.Channel.SendMessage ("Cooldown reset.");
+						await arg.Channel.SendMessage ("Cooldown reset for " + effectiveServer.Name + ".");
 					}
 
 					info.LastPing = DateTime.MinValue;
@@ -494,6 +498,8 @@ namespace DiscordBotCheckMinecraftStatus
 				});
 
 				ccgb.CreateCommand ("set")
+					.UseGlobalWhitelist ()
+					.PrivateOnly ()
 					.Parameter ("cooldown", ParameterType.Required) 
 					.Description ("Sets the cooldown in between invocations in milliseconds. This setting is global.")
 					.Do (async (arg) => {
@@ -559,9 +565,9 @@ namespace DiscordBotCheckMinecraftStatus
 
 					if (servData != null) {
 						servData.LastPing = DateTime.MaxValue;
-						await arg.Channel.SendMessage ("Server pings disabled.");
+						await arg.Channel.SendMessage ("Server pings disabled on " + effectiveServer.Name + ".");
 					} else {
-						await arg.Channel.SendMessage ("The given server does not have an associated Minecraft instance, and thus does not ping.");
+						await arg.Channel.SendMessage (effectiveServer.Name + " does not have an associated Minecraft instance, and thus does not ping.");
 					}
 				});
 			});
@@ -651,7 +657,7 @@ namespace DiscordBotCheckMinecraftStatus
 				if (alertOnFail != null) {
 					if (voiceServInfo.LastPing == DateTime.MaxValue) {
 						// Large value
-						await alertOnFail.SendMessage ("My ping capabilities have been disabled. Please contact an admin to turn me back on");
+						await alertOnFail.SendMessage ("My ping capabilities have been disabled. Please contact an admin to turn me back on.");
 					} else {
 						await alertOnFail.SendMessage ("I only ping the Minecraft server once every " + ((int)Delay.TotalSeconds) + " seconds at most. Try again later.");
 					}

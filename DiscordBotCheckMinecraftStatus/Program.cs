@@ -15,6 +15,19 @@ using System.Net;
 
 namespace DiscordBotCheckMinecraftStatus
 {
+	public static class Extensions
+	{
+		public static string GetAddressString (this IMinecraftServer server)
+		{
+			StringBuilder sb = new StringBuilder (server.Hostname, server.Hostname.Length + 7);
+			if (server.Port != 25565) {
+				sb.Append (':').Append (server.Port);
+			}
+
+			return sb.ToString ();
+		}
+	}
+
 	class Program
 	{
 		private static ConsoleCancelEventHandler EndPrgm;
@@ -421,12 +434,12 @@ namespace DiscordBotCheckMinecraftStatus
 				} else if (servData.Minecraft.LastPingSucceeded.HasValue && servData.Minecraft.LastPingSucceeded.Value) {
 					await arg.User.SendMessage (serv.Name + "'s gameserver was up when last checked; you cannot currently subscribe to downtime.");
 				} else if (servData.UptimeSubscribers.Contains (arg.User)) {
-						await arg.User.SendMessage ("You are already subscribed to the next uptime notification for __"
-							+ servData.Minecraft.Hostname + (servData.Minecraft.Port == 25565 ? string.Empty : servData.Minecraft.Port.ToString()) + "__.");
+					await arg.User.SendMessage ("You are already subscribed to the next uptime notification for __"
+					+ servData.Minecraft.GetAddressString () + "__.");
 				} else {
 					servData.UptimeSubscribers.Add (arg.User);
-					await arg.User.SendMessage (string.Format ("You will be notified when {0}{1} comes back online.",
-						servData.Minecraft.Hostname, servData.Minecraft.Port == 25565 ? string.Empty : ':' + servData.Minecraft.Port.ToString ()));
+					await arg.User.SendMessage (string.Format ("You will be notified when __{0}__ comes back online.",
+						servData.Minecraft.GetAddressString ()));
 				}
 			});
 
@@ -737,8 +750,7 @@ namespace DiscordBotCheckMinecraftStatus
 					                                    string.Format
 					("The Minecraft server currently has **{0}** out of **{2}** player{1} online, and I can reach it with a ping of **{3} ms**.",
 						                                    servInfo.OnlinePlayerCount, servInfo.MaxPlayerCount == 1 ? string.Empty : "s",
-						                                    servInfo.MaxPlayerCount, ping,
-						                                    voiceServInfo.Minecraft.Hostname, voiceServInfo.Minecraft.Port == 25565 ? string.Empty : ':' + voiceServInfo.Minecraft.Port.ToString ()));
+						                                    servInfo.MaxPlayerCount, ping));
 				if (servInfo.PlayerSample.Count () > 0) {
 					
 					Client.Log.Debug ("CheckServerStatus", "Appending sample userlist of size " + servInfo.PlayerSample.Count () + " to message");
@@ -798,11 +810,7 @@ namespace DiscordBotCheckMinecraftStatus
 				// Markdown underline
 				onlineStatusMessage.Append ("__");
 
-				onlineStatusMessage.Append (voiceServInfo.Minecraft.Hostname);
-				if (voiceServInfo.Minecraft.Port != 25565) {
-					// Non-default
-					onlineStatusMessage.Append (':').Append (voiceServInfo.Minecraft.Port);
-				}
+				onlineStatusMessage.Append (voiceServInfo.Minecraft.GetAddressString());
 
 				// End markdown
 				onlineStatusMessage.Append ("__");

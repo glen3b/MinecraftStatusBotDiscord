@@ -305,6 +305,8 @@ namespace DiscordBotCheckMinecraftStatus
 				StatusCheckTimer = new System.Threading.Timer (OnStatusTimer, null, TimeSpan.FromMinutes (1), TimeSpan.FromTicks (Delay.Ticks * 5));
 			};
 
+			Servers = new DictionaryServerResolver (Client);
+
 			Client.ServerAvailable += (object sender, ServerEventArgs e) => {
 
 				IMinecraftServer minecraftServer = null;
@@ -607,7 +609,7 @@ namespace DiscordBotCheckMinecraftStatus
 			}
 		}
 
-		public IServerResolver Servers = new DictionaryServerResolver ();
+		public IServerResolver Servers;
 
 		// UID to server instance
 		public IDictionary<ulong, Server> UserCache = new Dictionary<ulong, Server> ();

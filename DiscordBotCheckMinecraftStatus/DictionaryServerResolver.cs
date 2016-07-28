@@ -5,9 +5,12 @@ namespace DiscordBotCheckMinecraftStatus
 {
 	public class DictionaryServerResolver : IServerResolver
 	{
-		public DictionaryServerResolver ()
+		public DictionaryServerResolver (Discord.DiscordClient client)
 		{
+			Client = client;
 		}
+
+		protected Discord.DiscordClient Client;
 
 		public void AddServer (Discord.Server voice, IMinecraftServer minecraft)
 		{
@@ -18,7 +21,7 @@ namespace DiscordBotCheckMinecraftStatus
 			_data.Add (voice.Id, new BasicServerInformation (Program.GetDefaultChannel (voice), minecraft));
 		}
 
-		IDictionary<ulong, BasicServerInformation> _data = new Dictionary<ulong, BasicServerInformation>();
+		IDictionary<ulong, BasicServerInformation> _data = new Dictionary<ulong, BasicServerInformation> ();
 
 		public IServerInformation this [Discord.Server voice] {
 			get {
@@ -47,7 +50,8 @@ namespace DiscordBotCheckMinecraftStatus
 			return ((System.Collections.IEnumerable)_data.Values).GetEnumerator ();
 		}
 
-		class BasicServerInformation : IServerInformation{
+		class BasicServerInformation : IServerInformation
+		{
 			public IMinecraftServer Minecraft {
 				get;
 				protected set;
@@ -58,12 +62,12 @@ namespace DiscordBotCheckMinecraftStatus
 				set;
 			}
 
-			public BasicServerInformation() : this(null, null){
+			private Discord.DiscordClient _client;
 
-			}
-
-			public BasicServerInformation(Discord.Channel defaultChannel, IMinecraftServer server){
-				UptimeSubscribers = new HashSet<Discord.User>();
+			public BasicServerInformation (Discord.Channel defaultChannel, IMinecraftServer server)
+			{
+				_client = defaultChannel.Client;
+				UptimeSubscribers = new DiscordUserSet (_client);
 				LastPing = DateTime.MinValue;
 				Minecraft = server;
 			}
@@ -74,9 +78,15 @@ namespace DiscordBotCheckMinecraftStatus
 			}
 
 			public Discord.Channel DefaultChannel {
-				get;
-				protected set;
+				get {
+					return _client.GetChannel (_channelId);
+				}
+				protected set {
+					_channelId = value.Id;
+				}
 			}
+
+			private ulong _channelId;
 
 		}
 	}

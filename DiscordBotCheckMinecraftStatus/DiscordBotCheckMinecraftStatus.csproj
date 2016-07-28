@@ -65,6 +65,7 @@
     <Compile Include="IServerResolver.cs" />
     <Compile Include="IMinecraftServerStatus.cs" />
     <Compile Include="DictionaryServerResolver.cs" />
+    <Compile Include="DiscordUserSet.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

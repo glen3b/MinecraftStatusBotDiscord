@@ -629,7 +629,7 @@ namespace DiscordBotCheckMinecraftStatus
 					.Do ((arg) => {
 					// No need to log, there's already a dedicated log
 
-					Client.Log.Warning ("BotAdmin Chat Interface", string.Format ("Received shutdown command from {0}.", arg.User.Name));
+					Client.Log.Info ("BotAdmin Chat Interface", string.Format ("Received shutdown command from {0}.", arg.User.Name));
 //					await Client.Disconnect ();
 //					Client.Dispose ();
 //

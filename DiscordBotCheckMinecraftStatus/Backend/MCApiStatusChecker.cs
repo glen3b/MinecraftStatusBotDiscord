@@ -34,7 +34,7 @@ namespace DiscordBotCheckMinecraftStatus
 					Log.Debug ("MCApi.us Backend", "Querying backend URL " + target.ToString ());
 					json = JObject.Parse (await client.DownloadStringTaskAsync (target.Uri));
 				} catch (Exception ex) {
-					Log.Error ("MCApi.us Backend", "Error getting and parsing server status information.", ex);
+					Log.Error ("MCApi.us Backend", "Error getting and parsing server status information", ex);
 					return null;
 				}
 

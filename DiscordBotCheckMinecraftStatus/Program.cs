@@ -437,8 +437,8 @@ namespace DiscordBotCheckMinecraftStatus
 						return;
 					}
 
-					Client.Log.Info ("ServerAvailable", string.Format ("Registered server '{0}' (ID:{1}) with Minecraft hostname '{2}:{3}'",
-						e.Server.Name, e.Server.Id, minecraftServer.Hostname, minecraftServer.Port));
+					Client.Log.Info ("ServerAvailable", string.Format ("Registered server '{0}' (ID:{1}) with Minecraft address '{2}'",
+						e.Server.Name, e.Server.Id, minecraftServer.GetAddressString()));
 
 					Servers.AddServer (e.Server, minecraftServer);
 				} catch (Exception ex) {

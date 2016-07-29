@@ -77,7 +77,7 @@ namespace DiscordBotCheckMinecraftStatus
 		}
 	}
 
-	class Program
+	class Program : IUserServerCache
 	{
 		private static ConsoleCancelEventHandler EndPrgm;
 
@@ -212,7 +212,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 					bool logsEnabled = false;
 
-					if (consoleInput [1].ToLower() == "on" || consoleInput [1] == "1" || consoleInput [1].ToLower() == "true") {
+					if (consoleInput [1].ToLower () == "on" || consoleInput [1] == "1" || consoleInput [1].ToLower () == "true") {
 						logsEnabled = true;
 					}
 
@@ -445,7 +445,7 @@ namespace DiscordBotCheckMinecraftStatus
 					}
 
 					Client.Log.Info ("ServerAvailable", string.Format ("Registered server '{0}' (ID:{1}) with Minecraft address '{2}'",
-						e.Server.Name, e.Server.Id, minecraftServer.GetAddressString()));
+						e.Server.Name, e.Server.Id, minecraftServer.GetAddressString ()));
 
 					Servers.AddServer (e.Server, minecraftServer);
 				} catch (Exception ex) {
@@ -677,22 +677,30 @@ namespace DiscordBotCheckMinecraftStatus
 			});
 		}
 
+		public Server GetEffectiveServer (User user, Server currentServer)
+		{
+			if (currentServer != null) {
+				UserCache [user.Id] = currentServer.Id;
+				return currentServer;
+			} else {
+				ulong tryServerId;
+				if (UserCache.TryGetValue (user.Id, out tryServerId)) {
+					return Client.GetServer (tryServerId);
+				} else {
+					return null;
+				}
+			}
+		}
+
 		public void GetEffectiveServer (CommandEventArgs args, ref Server serverVar)
 		{
-			if (args.Server != null) {
-				UserCache [args.User.Id] = args.Server;
-				serverVar = args.Server;
-			} else if (!UserCache.TryGetValue (args.User.Id, out serverVar)) {
-				// If TryGetValue succeeds it will assign to the target variable, which is what we wanted to do anyway
-				// Otherwise we're here, we'll just make sure it's null
-				serverVar = null;
-			}
+			serverVar = GetEffectiveServer (args.User, args.Server);	
 		}
 
 		public IServerResolver Servers;
 
-		// UID to server instance
-		public IDictionary<ulong, Server> UserCache = new Dictionary<ulong, Server> ();
+		// UserID to ServerID instance dictionary
+		public IDictionary<ulong, ulong> UserCache = new Dictionary<ulong, ulong> ();
 
 		private void LogAdminCommand (CommandEventArgs cmd)
 		{

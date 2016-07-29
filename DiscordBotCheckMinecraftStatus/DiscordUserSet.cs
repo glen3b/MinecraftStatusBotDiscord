@@ -7,8 +7,8 @@ namespace DiscordBotCheckMinecraftStatus
 {
 	static class SetUserExtensions{
 
-		public static UserData GetSignature(this User usr){
-			return new UserData (usr.Server.Id, usr.Id);
+		public static UserData GetUserSignature(this IUserServerCache cache, User usr){
+			return new UserData (cache.GetEffectiveServer(usr, usr.Server), usr.Id);
 		}
 
 		public static User GetUser(this DiscordClient client, UserData user){
@@ -48,72 +48,74 @@ namespace DiscordBotCheckMinecraftStatus
 	/// </summary>
 	public class DiscordUserSet : ISet<User>
 	{
-		public DiscordUserSet (DiscordClient client)
+		public DiscordUserSet (DiscordClient client, IUserServerCache cache)
 		{
 			_client = client;
+			_cache = cache;
 		}
 
 		private DiscordClient _client;
+		private IUserServerCache _cache;
 		private ISet<DiscordBotCheckMinecraftStatus.SetUserExtensions.UserData> _backingIdSet = new HashSet<DiscordBotCheckMinecraftStatus.SetUserExtensions.UserData>();
 
 		public bool Add (User item)
 		{
-			return _backingIdSet.Add (item.GetSignature());
+			return _backingIdSet.Add (_cache.GetUserSignature(item));
 		}
 
 		public void UnionWith (IEnumerable<User> other)
 		{
-			_backingIdSet.UnionWith (other.Select ((u) => u.GetSignature()));
+			_backingIdSet.UnionWith (other.Select ((u) => _cache.GetUserSignature(u)));
 		}
 
 		public void IntersectWith (IEnumerable<User> other)
 		{
-			_backingIdSet.IntersectWith (other.Select ((u) => u.GetSignature()));
+			_backingIdSet.IntersectWith (other.Select ((u) => _cache.GetUserSignature(u)));
 		}
 
 		public void ExceptWith (IEnumerable<User> other)
 		{
-			_backingIdSet.ExceptWith (other.Select ((u) => u.GetSignature()));
+			_backingIdSet.ExceptWith (other.Select ((u) => _cache.GetUserSignature(u)));
 		}
 
 		public void SymmetricExceptWith (IEnumerable<User> other)
 		{
-			_backingIdSet.SymmetricExceptWith (other.Select ((u) => u.GetSignature()));
+			_backingIdSet.SymmetricExceptWith (other.Select ((u) => _cache.GetUserSignature(u)));
 		}
 
 		public bool IsSubsetOf (IEnumerable<User> other)
 		{
-			return _backingIdSet.IsSubsetOf (other.Select ((u) => u.GetSignature()));
+			return _backingIdSet.IsSubsetOf (other.Select ((u) => _cache.GetUserSignature(u)));
 		}
 
 		public bool IsSupersetOf (IEnumerable<User> other)
 		{
-			return _backingIdSet.IsSupersetOf (other.Select ((u) => u.GetSignature()));
+			return _backingIdSet.IsSupersetOf (other.Select ((u) => _cache.GetUserSignature(u)));
 		}
 
 		public bool IsProperSupersetOf (IEnumerable<User> other)
 		{
-			return _backingIdSet.IsProperSupersetOf (other.Select ((u) => u.GetSignature()));
+			return _backingIdSet.IsProperSupersetOf (other.Select ((u) => _cache.GetUserSignature(u)));
 		}
 
 		public bool IsProperSubsetOf (IEnumerable<User> other)
 		{
-			return _backingIdSet.IsProperSubsetOf (other.Select ((u) => u.GetSignature()));
+			return _backingIdSet.IsProperSubsetOf (other.Select ((u) => _cache.GetUserSignature(u)));
 		}
 
 		public bool Overlaps (IEnumerable<User> other)
 		{
-			return _backingIdSet.Overlaps (other.Select ((u) => u.GetSignature()));
+			return _backingIdSet.Overlaps (other.Select ((u) => _cache.GetUserSignature(u)));
 		}
 
 		public bool SetEquals (IEnumerable<User> other)
 		{
-			return _backingIdSet.SetEquals (other.Select ((u) => u.GetSignature()));
+			return _backingIdSet.SetEquals (other.Select ((u) => _cache.GetUserSignature(u)));
 		}
 
 		void ICollection<User>.Add (User item)
 		{
-			((ICollection<DiscordBotCheckMinecraftStatus.SetUserExtensions.UserData>)_backingIdSet).Add (item.GetSignature());
+			((ICollection<DiscordBotCheckMinecraftStatus.SetUserExtensions.UserData>)_backingIdSet).Add (_cache.GetUserSignature(item));
 		}
 
 		public void Clear ()
@@ -123,7 +125,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 		public bool Contains (User item)
 		{
-			return _backingIdSet.Contains (item.GetSignature());
+			return _backingIdSet.Contains (_cache.GetUserSignature(item));
 		}
 
 		public void CopyTo (User[] array, int arrayIndex)
@@ -134,7 +136,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 		public bool Remove (User item)
 		{
-			return _backingIdSet.Remove (item.GetSignature ());
+			return _backingIdSet.Remove (_cache.GetUserSignature(item));
 		}
 
 		public int Count {

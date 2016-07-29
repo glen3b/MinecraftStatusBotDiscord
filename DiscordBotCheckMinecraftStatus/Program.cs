@@ -214,7 +214,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 					bool logsEnabled = false;
 
-					if (consoleInput [1] == "on" || consoleInput [1] == "1" || consoleInput [1] == "true") {
+					if (consoleInput [1].ToLower() == "on" || consoleInput [1] == "1" || consoleInput [1].ToLower() == "true") {
 						logsEnabled = true;
 					}
 

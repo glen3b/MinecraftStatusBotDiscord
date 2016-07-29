@@ -118,8 +118,6 @@ namespace DiscordBotCheckMinecraftStatus
 
 			Console.CancelKeyPress += EndPrgm;
 
-			main.Client.Log.Message += LogMessage;
-
 			while (isRunning) {
 				string[] consoleInput = null;
 				try {
@@ -350,8 +348,8 @@ namespace DiscordBotCheckMinecraftStatus
 			throw new ArgumentException ("The specified server does not have a valid default channel.");
 		}
 
-		private static bool _printLogs = true;
-		private static LogSeverity _logLevel = LogSeverity.Warning;
+		private static volatile bool _printLogs = true;
+		private static volatile LogSeverity _logLevel = LogSeverity.Warning;
 
 		private static void LogMessage (object sender, LogMessageEventArgs args)
 		{
@@ -365,7 +363,16 @@ namespace DiscordBotCheckMinecraftStatus
 
 		public Program (ulong adminId, System.Collections.Specialized.NameValueCollection appCfg)
 		{
-			Client = new DiscordClient ();
+			var clientConfig = new DiscordConfigBuilder ();
+
+			// Handle severity checking on our own terms to allow changing at runtime
+			clientConfig.LogLevel = LogSeverity.Debug;
+			clientConfig.LogHandler += LogMessage;
+
+			clientConfig.AppName = "Minecraft Integration Discord Bot";
+
+
+			Client = new DiscordClient (clientConfig);
 			Client.Ready += (object sender, EventArgs e) => {
 				Client.Log.Info ("OnReady", "Signed into Discord under bot username " + Client.CurrentUser.Name);
 

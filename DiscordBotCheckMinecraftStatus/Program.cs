@@ -723,7 +723,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 				// Do a quiet status check to potentially alert if there is new success
 				try {
-					Client.Log.Debug ("StatusTimer", "Performing 'quiet' server ping");
+					Client.Log.Verbose ("StatusTimer", "Performing 'quiet' server ping");
 					CheckServerStatus (server.DefaultChannel, null);
 				} catch {
 					// Ignore
@@ -810,7 +810,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 				voiceServInfo.Minecraft.LastPingSucceeded = false;
 
-				Client.Log.Verbose ("CheckServerStatus", "Server ping failed, informing channel");
+				Client.Log.Verbose ("CheckServerStatus", "Server ping marks Minecraft as offline, informing channel");
 
 				if (alertOnFail != null) {
 					await channel.SendMessage ("I cannot reach the Minecraft server; it's probably offline. You can run my `alert` command to be alerted when the server shows up as online.");
@@ -819,7 +819,7 @@ namespace DiscordBotCheckMinecraftStatus
 			} else {
 				voiceServInfo.Minecraft.LastPingSucceeded = true;
 
-				Client.Log.Verbose ("CheckServerStatus", "Server ping succeeded, informing channel");
+				Client.Log.Verbose ("CheckServerStatus", "Server ping marks Minecraft as up, informing channel");
 
 				if (voiceServInfo.UptimeSubscribers.Count > 0) {
 					StringBuilder uptimeMsg = new StringBuilder ();

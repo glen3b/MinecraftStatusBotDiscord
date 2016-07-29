@@ -360,7 +360,7 @@ namespace DiscordBotCheckMinecraftStatus
 				return;
 			}
 
-			Console.WriteLine ("[{3}] [{0} / {1}] {2}", args.Source, args.Severity, args.Message, DateTime.Now.ToString());
+			Console.WriteLine ("[{3}] [{0} / {1}] {2}", args.Source, args.Severity, args.Message, DateTime.Now.ToString ());
 		}
 
 		public Program (ulong adminId, System.Collections.Specialized.NameValueCollection appCfg)
@@ -442,7 +442,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 					Servers.AddServer (e.Server, minecraftServer);
 				} catch (Exception ex) {
-					Client.Log.Error("ServerAvailable", "Error adding server to registry", ex);
+					Client.Log.Error ("ServerAvailable", "Error adding server to registry", ex);
 				}
 //				Console.WriteLine ("Logged into Discord under bot username {0}.", Client.CurrentUser.Name);
 //				Console.WriteLine ("Listening for commands on {0} server{1}.", serverCount, serverCount == 1 ? string.Empty : "s");
@@ -782,8 +782,8 @@ namespace DiscordBotCheckMinecraftStatus
 					servInfo = await ServerStatus.GetStatus (voiceServInfo.Minecraft);
 					//servInfo = await TaskWithTimeout (GetServerInfo (), ErrorServerInfo);
 				}
-			} catch {
-				Client.Log.Debug ("CheckServerStatus", "Server ping catch-all hit, defaulting to failure");
+			} catch (Exception ex) {
+				Client.Log.Warning ("CheckServerStatus", "Error reaching Minecraft server", ex);
 
 				// Blanket catch all
 				ping = -1;
@@ -791,7 +791,16 @@ namespace DiscordBotCheckMinecraftStatus
 			}
 
 
-			if (ping == -1 || servInfo == null || servInfo.OnlinePlayerCount < 0) {
+			if (servInfo == null || ping == -1) {
+				voiceServInfo.Minecraft.LastPingSucceeded = false;
+
+				Client.Log.Warning ("CheckServerStatus", "Error pinging Minecraft server");
+
+				if (alertOnFail != null) {
+					await channel.SendMessage ("I had trouble pinging the Minecraft server; maybe it's offline?");
+				}
+			} else if (!servInfo.IsOnline) {
+
 				voiceServInfo.Minecraft.LastPingSucceeded = false;
 
 				Client.Log.Verbose ("CheckServerStatus", "Server ping failed, informing channel");
@@ -799,6 +808,7 @@ namespace DiscordBotCheckMinecraftStatus
 				if (alertOnFail != null) {
 					await channel.SendMessage ("I cannot reach the Minecraft server; it's probably offline. You can run my `alert` command to be alerted when the server shows up as online.");
 				}
+
 			} else {
 				voiceServInfo.Minecraft.LastPingSucceeded = true;
 

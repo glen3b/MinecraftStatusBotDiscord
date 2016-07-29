@@ -113,7 +113,7 @@ namespace DiscordBotCheckMinecraftStatus
 				isRunning = false;
 				main.Terminate ();
 
-				Reader.Cancel();
+				Reader.Cancel ();
 			};
 
 			Console.CancelKeyPress += EndPrgm;
@@ -378,68 +378,72 @@ namespace DiscordBotCheckMinecraftStatus
 
 			Client.ServerAvailable += (object sender, ServerEventArgs e) => {
 
-				IMinecraftServer minecraftServer = null;
+				try {
 
-				foreach (var key in appCfg.AllKeys) {
-					if (!key.Contains (":")) {
-						continue;
-					}
+					IMinecraftServer minecraftServer = null;
 
-					var keyParts = key.Split (':');
-
-					string index = keyParts [0];
-
-					// Ignore the Minecraft keys, we get those manually
-					if (keyParts [1] != "ServerID") {
-						continue;
-					}
-
-					// We've found a server ID key
-					ulong tryId;
-					if (!ulong.TryParse (appCfg [key], out tryId)) {
-						Client.Log.Warning ("ServerAvailable", "Error parsing ServerID key '" + key + "'");
-						continue;
-					}
-
-					string[] mcInfo = null;
-
-					try {
-						mcInfo = appCfg [index + ":MinecraftAddress"].Split (':');
-					} catch {
-						mcInfo = null;
-					}
-
-					if (mcInfo == null) {
-						Client.Log.Warning ("ServerAvailable", "No Minecraft info found for key '" + index + "'");
-						continue;
-					}
-
-					if (mcInfo.Length < 2) {
-						minecraftServer = new BaseMinecraftServerInformation (mcInfo [0]);
-					} else {
-						short port;
-						if (!short.TryParse (mcInfo [1], out port)) {
-							Client.Log.Warning ("ServerAvailable", "Error parsing port for Minecraft '" + index + ",' using default port 25565");
-							port = 25565;
+					foreach (var key in appCfg.AllKeys) {
+						if (!key.Contains (":")) {
+							continue;
 						}
 
-						minecraftServer = new BaseMinecraftServerInformation (mcInfo [0], port);
+						var keyParts = key.Split (':');
+
+						string index = keyParts [0];
+
+						// Ignore the Minecraft keys, we get those manually
+						if (keyParts [1] != "ServerID") {
+							continue;
+						}
+
+						// We've found a server ID key
+						ulong tryId;
+						if (!ulong.TryParse (appCfg [key], out tryId)) {
+							Client.Log.Warning ("ServerAvailable", "Error parsing ServerID key '" + key + "'");
+							continue;
+						}
+
+						string[] mcInfo = null;
+
+						try {
+							mcInfo = appCfg [index + ":MinecraftAddress"].Split (':');
+						} catch {
+							mcInfo = null;
+						}
+
+						if (mcInfo == null) {
+							Client.Log.Warning ("ServerAvailable", "No Minecraft info found for key '" + index + "'");
+							continue;
+						}
+
+						if (mcInfo.Length < 2) {
+							minecraftServer = new BaseMinecraftServerInformation (mcInfo [0]);
+						} else {
+							short port;
+							if (!short.TryParse (mcInfo [1], out port)) {
+								Client.Log.Warning ("ServerAvailable", "Error parsing port for Minecraft '" + index + ",' using default port 25565");
+								port = 25565;
+							}
+
+							minecraftServer = new BaseMinecraftServerInformation (mcInfo [0], port);
+						}
+
+						// Found our server
+						break;
 					}
 
-					// Found our server
-					break;
+					if (minecraftServer == null) {
+						Client.Log.Warning ("ServerAvailable", "No Minecraft server found for guild '" + e.Server.Name + "'");
+						return;
+					}
+
+					Client.Log.Info ("ServerAvailable", string.Format ("Registered server '{0}' (ID:{1}) with Minecraft hostname '{2}:{3}'",
+						e.Server.Name, e.Server.Id, minecraftServer.Hostname, minecraftServer.Port));
+
+					Servers.AddServer (e.Server, minecraftServer);
+				} catch (Exception ex) {
+					Client.Log.Error("ServerAvailable", "Error adding server to registry", ex);
 				}
-
-				if (minecraftServer == null) {
-					Client.Log.Warning ("ServerAvailable", "No Minecraft server found for guild '" + e.Server.Name + "'");
-					return;
-				}
-
-				Client.Log.Info ("ServerAvailable", string.Format ("Registered server '{0}' (ID:{1}) with Minecraft hostname '{2}:{3}'",
-					e.Server.Name, e.Server.Id, minecraftServer.Hostname, minecraftServer.Port));
-
-				Servers.AddServer (e.Server, minecraftServer);
-
 //				Console.WriteLine ("Logged into Discord under bot username {0}.", Client.CurrentUser.Name);
 //				Console.WriteLine ("Listening for commands on {0} server{1}.", serverCount, serverCount == 1 ? string.Empty : "s");
 			};

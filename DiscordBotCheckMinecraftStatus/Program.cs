@@ -360,7 +360,7 @@ namespace DiscordBotCheckMinecraftStatus
 				return;
 			}
 
-			Console.WriteLine ("[{0} / {1}] {2}", args.Source, args.Severity, args.Message);
+			Console.WriteLine ("[{3}] [{0} / {1}] {2}", args.Source, args.Severity, args.Message, DateTime.Now.ToString());
 		}
 
 		public Program (ulong adminId, System.Collections.Specialized.NameValueCollection appCfg)

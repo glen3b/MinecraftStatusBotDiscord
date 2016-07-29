@@ -79,6 +79,8 @@ namespace DiscordBotCheckMinecraftStatus
 
 	class Program : IUserServerCache
 	{
+		public static IUserServerCache UserServerCache;
+
 		private static ConsoleCancelEventHandler EndPrgm;
 
 		public static void Main (string[] args)
@@ -382,6 +384,7 @@ namespace DiscordBotCheckMinecraftStatus
 			};
 
 			Servers = new DictionaryServerResolver (Client);
+			UserServerCache = this;
 
 			Client.ServerAvailable += (object sender, ServerEventArgs e) => {
 
@@ -677,14 +680,14 @@ namespace DiscordBotCheckMinecraftStatus
 			});
 		}
 
-		public Server GetEffectiveServer (User user, Server currentServer)
+		public Server GetEffectiveServer (ulong userId, Server currentServer)
 		{
 			if (currentServer != null) {
-				UserCache [user.Id] = currentServer.Id;
+				UserCache [userId] = currentServer.Id;
 				return currentServer;
 			} else {
 				ulong tryServerId;
-				if (UserCache.TryGetValue (user.Id, out tryServerId)) {
+				if (UserCache.TryGetValue (userId, out tryServerId)) {
 					return Client.GetServer (tryServerId);
 				} else {
 					return null;
@@ -694,7 +697,7 @@ namespace DiscordBotCheckMinecraftStatus
 
 		public void GetEffectiveServer (CommandEventArgs args, ref Server serverVar)
 		{
-			serverVar = GetEffectiveServer (args.User, args.Server);	
+			serverVar = GetEffectiveServer (args.User.Id, args.Server);	
 		}
 
 		public IServerResolver Servers;

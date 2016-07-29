@@ -67,7 +67,7 @@ namespace DiscordBotCheckMinecraftStatus
 			public BasicServerInformation (Discord.Channel defaultChannel, IMinecraftServer server)
 			{
 				_client = defaultChannel.Client;
-				UptimeSubscribers = new DiscordUserSet (_client);
+				UptimeSubscribers = new DiscordUserSet (Program.UserServerCache);
 				LastPing = DateTime.MinValue;
 				Minecraft = server;
 				DefaultChannel = defaultChannel;

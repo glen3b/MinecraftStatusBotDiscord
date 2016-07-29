@@ -154,6 +154,7 @@ namespace DiscordBotCheckMinecraftStatus
 						foreach (var server in main.Servers) {
 							
 							Console.WriteLine ("Guild Name: '{0}'", server.DefaultChannel.Server.Name);
+							Console.WriteLine ("Guild ID: {0}", server.DefaultChannel.Server.Id);
 							Console.WriteLine ("Default Channel: #{0}", server.DefaultChannel.Name);
 							Console.WriteLine ("Minecraft Address: '{0}'", server.Minecraft.GetAddressString ());
 

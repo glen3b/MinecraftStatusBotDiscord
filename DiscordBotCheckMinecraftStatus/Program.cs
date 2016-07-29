@@ -348,8 +348,8 @@ namespace DiscordBotCheckMinecraftStatus
 			throw new ArgumentException ("The specified server does not have a valid default channel.");
 		}
 
-		private static volatile bool _printLogs = true;
-		private static volatile LogSeverity _logLevel = LogSeverity.Warning;
+		private static bool _printLogs = true;
+		private static LogSeverity _logLevel = LogSeverity.Warning;
 
 		private static void LogMessage (object sender, LogMessageEventArgs args)
 		{
